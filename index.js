@@ -43,7 +43,7 @@ let { say } = cfonts
 
 console.log(chalk.bold.redBright(`\n✰ Iniciando bot ✰\n`))
 
-say('Jota', {
+say('Pantheon Bot', {
 font: 'block',
 align: 'center',
 colors: ['magentaBright']
