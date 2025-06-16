@@ -1,31 +1,58 @@
-const xtools = "🧰";
+const handler = async (msg, { conn }) => {
+  const chatId = msg.key.remoteJid;
+  const isGroup = chatId.endsWith('@g.us');
 
-import uploadImage from '../lib/uploadImage.js'
-import fetch from 'node-fetch'
+  if (!isGroup) {
+    return await conn.sendMessage(chatId, {
+      text: '❌ Este comando solo puede usarse en grupos.'
+    }, { quoted: msg });
+  }
 
-let handler = async (m, { conn, usedPrefix, command, args, text }) => {
-let q = m.quoted ? m.quoted : m
-let mime = (q.msg || q).mimetype || ''
-if (!mime) return conn.reply(m.chat, `*${xtools} Por favor, responda a una imagen o vídeo e ingresa el peso nuevo.*`, m)
-if (!text) return conn.reply(m.chat, `*⚠️ Ingresa el peso nuevo de la imágen o video.*`, m)
-await m.react('⌛')
-try {
-if (isNaN(text)) return conn.reply(m.chat, `⚠️ Sólo se permiten números.*`, m).then(_ => m.react('✖️'))
-if (!/image\/(jpe?g|png)|video|document/.test(mime)) return conn.reply(m.chat, `*✖️ Formato no soportado.*`, m)
-let img = await q.download()
-let url = await uploadImage(img)
+  try {
+    await conn.sendMessage(chatId, {
+      react: { text: '🔍', key: msg.key }
+    });
 
-if (/image\/(jpe?g|png)/.test(mime)) {
-await conn.sendMessage(m.chat, { image: {url: url}, caption: ``, fileLength: `${text}`, mentions: [m.sender] }, { ephemeralExpiration: 24*3600, quoted: m})
-} else if (/video/.test(mime)) {
-return conn.sendMessage(m.chat, { video: {url: url}, caption: ``, fileLength: `${text}`, mentions: [m.sender] }, { ephemeralExpiration: 24*3600, quoted: m })
-}
-await m.react('✅')
-} catch {
-await m.react('✖️')
-}}
-handler.tags = ['tools']
-handler.help = ['tamaño *<cantidad>*']
-handler.command = ['filelength', 'length', 'tamaño']
+    const metadata = await conn.groupMetadata(chatId);
+    const participantes = metadata.participants || [];
 
-export default handler
+    const conLib = [];
+    const sinLib = [];
+
+    for (const p of participantes) {
+      const jid = p.id || '';
+      if (jid.endsWith('@s.whatsapp.net')) {
+        const numero = jid.split('@')[0];
+        conLib.push(`• ${jid}  +${numero}`);
+      } else if (jid.endsWith('@lid')) {
+        sinLib.push(`• ${jid}`);
+      }
+    }
+
+    const mensaje = `
+📄 *Estado de LID en el grupo:*
+👥 *Total miembros:* ${participantes.length}
+
+✅ *Sin LID (número visible):* ${conLib.length}
+${conLib.length ? conLib.join('\n') : '• Ninguno'}
+
+❌ *Con LID (numeros ocultos por - lid para mayor seguridad segun whatsapp):* ${sinLib.length}
+${sinLib.length ? sinLib.join('\n') : '• Ninguno'}
+
+ℹ️ WhatsApp está ocultando números reales con el formato *@lid* para proteger la privacidad.
+`;
+
+    await conn.sendMessage(chatId, {
+      text: mensaje.trim()
+    }, { quoted: msg });
+
+  } catch (err) {
+    console.error("❌ Error en verlib:", err);
+    await conn.sendMessage(chatId, {
+      text: '❌ Ocurrió un error al obtener la información del grupo.'
+    }, { quoted: msg });
+  }
+};
+
+handler.command = ['verlid'];
+module.exports = handler;
