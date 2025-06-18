@@ -74,28 +74,8 @@ let handler = async function (m, { conn, text, args, usedPrefix, command }) {
         }
     }, { quoted: m });
 
-    let chtxt = `👤 *𝚄𝚂𝙴𝚁:* ${m.pushName || 'Anónimo'}
-☕ *𝚁𝙴𝙶𝙸𝚂𝚃𝚁𝙾:* ${user.name}
-🤍 *𝙴𝙳𝙰𝙳:* ${user.age} años
-📝 *𝙳𝙴𝚂𝙲:* ${user.descripcion || 'Sin descripción'}
-🪪 *𝚂𝙴𝚁𝙸𝙴:*
-⤷ ${sn}`;
+    // --- Eliminado el envío a canal newsletter para evitar error ---
 
-    let channelID = '120363384854309225@newsletter';
-    await conn.sendMessage(channelID, {
-        text: chtxt,
-        contextInfo: {
-            externalAdReply: {
-                title: "☕ 𝐍𝐎𝐓𝐈𝐅𝐈𝐂𝐀𝐂𝐈𝐎́𝐍 - 𝐑𝐄𝐆𝐈𝐒𝐓𝐑𝐎",
-                body: '🥳 ¡ᥙᥒ ᥙsᥙᥲrі᥆ ᥒᥙᥱ᥎᥆ ᥱᥒ mі ᑲᥲsᥱ ძᥱ ძᥲ𝗍᥆s!',
-                thumbnailUrl: perfil,
-                sourceUrl: redes,
-                mediaType: 1,
-                showAdAttribution: false,
-                renderLargerThumbnail: false
-            }
-        }
-    }, { quoted: null });
 };
 
 handler.help = ['reg']
