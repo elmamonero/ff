@@ -48,14 +48,14 @@ let handler = async function (m, { conn, text, args, usedPrefix, command }) {
     }
 
     let sn = createHash('md5').update(m.sender).digest('hex')
-    let regbot = `𐙚ㅤ *𝖱𝖾︩𝗀𝗂𝗌𝗍𝗋𝗈* ㅤﾉㅤ *𝖢𝗈𝗆𝗉𝗅𝖾ł𝗈* ㅤᗝ̵\nㅤ꒰       ֹ      ﹙᷼͝sʜᴀᴅᴏᴡ᷼͝﹚       ִ       ꒱\n\n`
-    regbot += `✿᷎︩︪͡⪧ \`Nombre:\` ${name}\n`
-    regbot += `✿᷎︩︪͡⪧ \`Edad:\` ${age} años\n\n`
-    regbot += `𐔌𐔌  *𝖱𝖾𝖼໊𝗈𝗆͟𝗉͟𝖾͟𝗇͟𝗌͟𝖺𝗌 ࣲ* ׅ  ☕ᩨ   ׄ\n\n`
-    regbot += `ᦷᩘᦷ     ݂   💎 ፡ \`\`\`15 Diamantes\`\`\`\n`
-    regbot += `ᦷᩘᦷ     ݂   🍸 ፡ \`\`\`245 Xp\`\`\`\n`
-    regbot += `ᦷᩘᦷ     ݂   🎫 ፡ \`\`\`12 Tokens\`\`\`\n\n`
-    regbot += `> 𝖢𝗈𝗅𝗈𝖼𝖺 *#profile* 𝗉𝖺𝗋𝖺 𝗏𝖾𝗋 𝗍𝗎 𝗉𝖾𝗋𝖿𝗂𝗅`
+    let regbot = `*\`.･:｡REGISTRO COMPLETO.•:｡\`*\n\n`
+    regbot += `- *Nombre:* ${name}\n`
+    regbot += `- *Edad:* ${age} años\n\n`
+    regbot += `*RECOMPENSAS*\n\n> `
+    regbot += `💎 15 Diamantes\n> `
+    regbot += `💫 245 Exp\n> `
+    regbot += `🎫 12 Tokens\n\n`
+    regbot += `> ᥴ᥆ᥣ᥆ᥴᥲ *.profile* ⍴ᥲrᥲ ᥎ᥱr 𝗍ᥙ ⍴ᥱr𝖿іᥣ.`
 
     // Envía mensaje con un externalAdReply sin usar funciones internas
     await m.react('💌')
