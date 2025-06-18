@@ -3,21 +3,27 @@ import { createHash } from 'crypto'
 // Define tu variable 'club' aquí, reemplázala por lo que quieras mostrar en 'body'
 let club = 'Este es el contenido del body que quieres mostrar en la respuesta del anuncio.'
 
+// Define la expresión regular para validar "nombre.edad"
+const Reg = /^([^.]*)\.(\d+)$/
+
+// Define la URL de tus redes para el sourceUrl del canal
+const redes = "https://instagram.com/tu_perfil" // ¡Reemplázala por tu enlace real!
+
 let handler = async function (m, { conn, text, args, usedPrefix, command }) {
     let user = global.db.data.users[m.sender]
     let name2 = conn.getName(m.sender)
-    let whe = m.mentionedJid[0] ? m.mentionedJid[0] : m.quoted ? m.quoted.sender : m.sender
+    let whe = m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : m.quoted ? m.quoted.sender : m.sender
 
     let perfil = await conn.profilePictureUrl(whe, 'image').catch(_ => 'https://files.catbox.moe/xr2m6u.jpg')
 
     if (user.registered === true) {
-        return m.reply(`*🍚 Ya te encuentras registrado en mi base de datos.*\n*Si deseas eliminar tu registro use la función \`#unreg\`*`)
+        return m.reply(`*🍚 Ya te encuentras registrado en mi base de datos.*\n*Si deseas eliminar tu registro usa la función \`#unreg\`*`)
     }
 
     if (!Reg.test(text)) return m.reply(`*🍚 Por favor, ingresa tu nombre y edad para registrarte en mi base de datos.*\n> *\`Ejemplo:\`*\n> ${usedPrefix + command} ${name2}.20`)
 
-    let [_, name, splitter, age] = text.match(Reg)
-    if (!name) return m.reply('*⚠️ El nombre no puede estar vacío pendejo.*')
+    let [_, name, age] = text.match(Reg) || []
+    if (!name) return m.reply('*⚠️ El nombre no puede estar vacío.*')
     if (!age) return m.reply('*⚠️ La edad no puede estar vacía.*')
     if (name.length >= 100) return m.reply('*⚠️ El nombre es demasiado largo.*')
 
@@ -32,7 +38,7 @@ let handler = async function (m, { conn, text, args, usedPrefix, command }) {
     global.db.data.users[m.sender].money += 600
     global.db.data.users[m.sender].diamantes += 15
     global.db.data.users[m.sender].exp += 245
-    global.db.data.users[m.sender].joincount += 5    
+    global.db.data.users[m.sender].joincount += 12 // Recompensa de 12 tokens
 
     let who;
     if (m.quoted && m.quoted.sender) {
@@ -66,12 +72,12 @@ let handler = async function (m, { conn, text, args, usedPrefix, command }) {
                 renderLargerThumbnail: true
             }
         }
-    }, { quoted: m }); // Usa 'm' en vez de 'fkontak', a menos que sea específico
+    }, { quoted: m });
 
-let chtxt = `👤 *𝚄𝚂𝙴𝚁:* ${m.pushName || 'Anónimo'}
+    let chtxt = `👤 *𝚄𝚂𝙴𝚁:* ${m.pushName || 'Anónimo'}
 ☕ *𝚁𝙴𝙶𝙸𝚂𝚃𝚁𝙾:* ${user.name}
 🤍 *𝙴𝙳𝙰𝙳:* ${user.age} años
-📝 *𝙳𝙴𝚂𝙲:* ${user.descripcion}
+📝 *𝙳𝙴𝚂𝙲:* ${user.descripcion || 'Sin descripción'}
 🪪 *𝚂𝙴𝚁𝙸𝙴:*
 ⤷ ${sn}`;
 
