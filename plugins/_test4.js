@@ -1,72 +1,99 @@
-import axios from 'axios';
+import axios from 'axios'
+import { createHash } from 'crypto'
+import PhoneNumber from 'awesome-phonenumber'
+import moment from 'moment-timezone'
 
-const handler = async (m, {
-    conn,
-    args,
-    usedPrefix,
-    command
-}) => {
-    if (!args[0]) {
-        return conn.reply(m.chat,
-            `✧ YT Downloader ✧\n` +
-            `Ejemplo: ${usedPrefix + command} *link*`,
-            m);
+let Reg = /\|?(.*)([.|] *?)([0-9]*)$/i
+let handler = async function (m, { conn, text, args, usedPrefix, command }) {
+    let user = global.db.data.users[m.sender]
+    let name2 = conn.getName(m.sender)
+    let whe = m.mentionedJid[0] ? m.mentionedJid[0] : m.quoted ? m.quoted.sender : m.sender
+
+    let perfil = await conn.profilePictureUrl(whe, 'image').catch(_ => 'https://files.catbox.moe/xr2m6u.jpg')
+
+    if (user.registered === true) {
+        return m.reply(`*🍚 Ya te encuentras registrado en mi base de datos.*\n*Si deseas eliminar tu registro use la función \`#unreg\`*`)
     }
-    try {
-        const api = `https://ytdlpyton.nvlgroup.my.id/download/?url=${encodeURIComponent(args[0])}&mode=url`;
 
-        await conn.reply(m.chat, '✧ Espere...', m);
+    if (!Reg.test(text)) return m.reply(`*🍚 Por favor, ingresa tu nombre y edad para registrarte en mi base de datos.*\n> *\`Ejemplo:\`*\n> ${usedPrefix + command} ${name2}.20`)
 
-        // Obtén los datos de la API
-        const res = await axios.get(api, {
-            headers: {
-                'accept': 'application/json'
+    let [_, name, splitter, age] = text.match(Reg)
+    if (!name) return m.reply('*⚠️ El nombre no puede estar vacío pendejo.*')
+    if (!age) return m.reply('*⚠️ La edad no puede estar vacía.*')
+    if (name.length >= 100) return m.reply('*⚠️ El nombre es demasiado largo.*')
+
+    age = parseInt(age)
+    if (age > 1000) return m.reply('*👴🏻 Qué haces acá, no deberías estar en el cementerio?*')
+    if (age < 5) return m.reply('*👶🏻 Mirá el bebé quiere jugar al bot*')
+
+    user.name = name.trim()
+    user.age = age
+    user.regTime = +new Date
+    user.registered = true
+    global.db.data.users[m.sender].money += 600
+    global.db.data.users[m.sender].diamantes += 15
+    global.db.data.users[m.sender].exp += 245
+    global.db.data.users[m.sender].joincount += 5    
+
+    let who;
+    if (m.quoted && m.quoted.sender) {
+        who = m.quoted.sender;
+    } else {
+        who = m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : m.fromMe ? conn.user.jid : m.sender;
+    }
+
+    let sn = createHash('md5').update(m.sender).digest('hex')
+    let regbot = `𐙚ㅤ *𝖱𝖾︩𝗀𝗂𝗌𝗍𝗋𝗈* ㅤﾉㅤ *𝖢𝗈𝗆𝗉𝗅𝖾ł𝗈* ㅤᗝ̵\nㅤ꒰       ֹ      ﹙᷼͝sʜᴀᴅᴏᴡ᷼͝﹚       ִ       ꒱\n\n`
+    regbot += `✿᷎︩︪͡⪧ \`Nombre:\` ${name}\n`
+    regbot += `✿᷎︩︪͡⪧ \`Edad:\` ${age} años\n\n`
+    regbot += `𐔌𐔌  *𝖱𝖾𝖼໊𝗈𝗆͟𝗉͟𝖾͟𝗇͟𝗌͟𝖺𝗌 ࣲ* ׅ  ☕ᩨ   ׄ\n\n`
+    regbot += `ᦷᩘᦷ     ݂   💎 ፡ \`\`\`15 Diamantes\`\`\`\n`
+    regbot += `ᦷᩘᦷ     ݂   🍸 ፡ \`\`\`245 Xp\`\`\`\n`
+    regbot += `ᦷᩘᦷ     ݂   🎫 ፡ \`\`\`12 Tokens\`\`\`\n\n`
+    regbot += `> 𝖢𝗈𝗅𝗈𝖼𝖺 *#profile* 𝗉𝖺𝗋𝖺 𝗏𝖾𝗋 𝗍𝗎 𝗉𝖾𝗋𝖿𝗂𝗅`
+
+    await m.react('💌')
+    await conn.sendMessage(m.chat, {
+        text: regbot,
+        contextInfo: {
+            externalAdReply: {
+                title: '෫໋ׅׄ𝆬🍃ິ⃨ 𝖱𝖾𝗀𝗂𝗌𝗍𝗋𝗈 - 𝖲𝗁𝖺𝖽𝗈𝗐 ׅ𝖴𝗅𝗍𝗋𝖺  ׄ ׄ𑁍̵ ֕︵۪۪۪۪᷼ ּ',
+                body: club,
+                thumbnailUrl: 'https://files.catbox.moe/nwqdwh.jpg',
+                sourceUrl: 'https://whatsapp.com/channel/0029Vb1X1TDElah1FEQ4xm0K',
+                mediaType: 1,
+                showAdAttribution: true,
+                renderLargerThumbnail: true
             }
-        });
-
-        if (!res.data.download_url) throw new Error('Error link');
-
-        // Descarga el archivo en Buffer
-        const response = await axios.get(res.data.download_url, { responseType: 'arraybuffer' });
-
-        // Obtener el tamaño del archivo
-        let sizeStr = 'Desconocido';
-        try {
-            const headResponse = await axios.head(res.data.download_url);
-            const sizeBytes = parseInt(headResponse.headers['content-length']);
-            if (!isNaN(sizeBytes)) {
-                sizeStr = await formatSize(sizeBytes);
-            }
-        } catch (e) {
-            // No se pudo obtener el tamaño
         }
+    }, { quoted: fkontak });
 
-        // Crear el caption con el formato deseado
-        const caption = `\`\`\`◜YouTube - MP4◞\`\`\`\n\n${res.data.title}\n≡ *🌴 URL:* ${args[0]}`;
+let chtxt = `👤 *𝚄𝚂𝙴𝚁:* ${m.pushName || 'Anónimo'}
+☕ *𝚁𝙴𝙶𝙸𝚂𝚃𝚁𝙾:* ${user.name}
+🤍 *𝙴𝙳𝙰𝙳:* ${user.age} años
+📝 *𝙳𝙴𝚂𝙲:* ${user.descripcion}
+🪪 *𝚂𝙴𝚁𝙸𝙴:*
+⤷ ${sn}`;
 
-        // Enviar como archivo, usando el título como nombre
-        await conn.sendFile(m.chat, response.data, `${res.data.title}.mp4`, caption, m);
-
-    } catch (er) {
-        conn.reply(m.chat, `${er.message || 'Error en la API'}`, m);
-    }
+    let channelID = '120363384854309225@newsletter';
+        await conn.sendMessage(channelID, {
+        text: chtxt,
+        contextInfo: {
+            externalAdReply: {
+                title: "☕ 𝐍𝐎𝐓𝐈𝐅𝐈𝐂𝐀𝐂𝐈𝐎́𝐍 - 𝐑𝐄𝐆𝐈𝐒𝐓𝐑𝐎",
+                body: '🥳 ¡ᥙᥒ ᥙsᥙᥲrі᥆ ᥒᥙᥱ᥎᥆ ᥱᥒ mі ᑲᥲsᥱ ძᥱ ძᥲ𝗍᥆s!',
+                thumbnailUrl: perfil,
+                sourceUrl: redes,
+                mediaType: 1,
+                showAdAttribution: false,
+                renderLargerThumbnail: false
+            }
+        }
+    }, { quoted: null });
 };
 
-// Función para formatear tamaño
-async function formatSize(bytes) {
-    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-    let i = 0;
-    if (!bytes || isNaN(bytes)) return 'Desconocido';
-    while (bytes >= 1024 && i < units.length - 1) {
-        bytes /= 1024;
-        i++;
-    }
-    return `${bytes.toFixed(2)} ${units[i]}`;
-}
+handler.help = ['reg']
+handler.tags = ['rg']
+handler.command = ['testrg']
 
-handler.help = ['test4'];
-handler.tags = ['downloader'];
-handler.command = /^test4$/i;
-handler.limit = true;
-
-export default handler;
+export default handler
