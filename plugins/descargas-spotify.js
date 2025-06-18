@@ -1,66 +1,35 @@
-/* 
-- Downloader Spotify By Izumi-kzx
-- https://whatsapp.com/channel/0029VaJxgcB0bIdvuOwKTM2Y
-*/
-import fetch from 'node-fetch';
+import fetch from 'node-fetch'
 
-let handler = async (m, { conn, command, text, usedPrefix }) => {
+let handler = async (m, { conn, text, usedPrefix, command }) => {
   if (!text) {
-    return conn.reply(
-      m.chat,
-      '[ ᰔᩚ ] Ingresa el nombre o enlace para buscar en *Spotify*.\n\n' + 
-      `Ejemplo:\n> *${usedPrefix + command}* https://open.spotify.com/track/123456789`,
-      m
-    );
+    await m.reply(`*📀 Por favor, ingresa el enlace o nombre de una canción de Spotify.*\n> *\`Ejemplo:\`* ${usedPrefix + command} Ponte bonita - Cris mj`);
+    return;
   }
 
-  await m.react('🕓');
+  await m.react('⌛');
 
   try {
-    const response = await fetch(`https://dark-core-api.vercel.app/api/download/spotify?key=api&url=${encodeURIComponent(text)}`);
-    const result = await response.json();
+    let ouh = await fetch(`https://api.nekorinn.my.id/downloader/spotifyplay?q=${encodeURIComponent(text)}`);
+    let gyh = await ouh.json();
 
-    if (result.success) {
-      const { title, thumbnail, downloadLink } = result;
-
-      const mensaje = `🎵 *Título:* ${title}`;
-
-      await conn.sendFile(m.chat, thumbnail, 'cover.jpg', mensaje, m);
-
-/*      await conn.sendMessage(
-        m.chat,
-        {
-          text: `🔗 *Enlace de descarga:* ${downloadLink}`
-        },
-        { quoted: m }
-      );
-*/
-
-await conn.sendMessage(m.chat, { audio: { url: downloadLink }, mimetype: 'audio/mpeg' }, { quoted: m });
-
-      await m.react('✅');
-    } else {
-      await m.react('❌');
-      conn.reply(
-        m.chat,
-        '[ ᰔᩚ ] No se pudo obtener la música para este enlace o búsqueda.',
-        m
-      );
+    if (!gyh.result || !gyh.result.downloadUrl) {
+      throw new Error('No se encontró la canción o el enlace es inválido.');
     }
-  } catch (error) {
-    console.error(error);
+
+    await conn.sendMessage(m.chat, {
+      audio: { url: gyh.result.downloadUrl },
+      mimetype: 'audio/mpeg'
+    }, { quoted: m });
+
+    await m.react('✅');
+  } catch (e) {
+    await m.reply(`❌ Error al obtener el audio:\n${e.message}`);
     await m.react('❌');
-    conn.reply(
-      m.chat,
-      '[ ᰔᩚ ] Ocurrió un error al procesar tu solicitud.',
-      m
-    );
   }
-};
+}
 
-handler.help = ['spotify *<url>*'];
-handler.tags = ['descargas'];
-handler.command = /^(spotify|spdl)$/i;
-handler.register = true;
+handler.help = ['spotify *<texto>*']
+handler.tags = ['descargas']
+handler.command = ['spotify', 'spotifydl', 'spdl']
 
-export default handler;
+export default handler
