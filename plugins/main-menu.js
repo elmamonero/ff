@@ -61,6 +61,7 @@ ${readMore}
 ⠞🪷੭‎ ${usedPrefix}play *texto*
 ⠞🪷੭‎ ${usedPrefix}ytmp4doc *texto*
 ⠞🪷੭‎ ${usedPrefix}ytmp3doc *texto*
+⠞🪷੭‎ ${usedPrefix}spotify *texto*
 ⠞🪷੭‎ ${usedPrefix}apk *texto*
 ⠞🪷੭‎ ${usedPrefix}pinterest *texto*
 ⠞🪷੭‎ ${usedPrefix}pinvid *url*
