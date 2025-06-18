@@ -4,6 +4,7 @@ import PhoneNumber from 'awesome-phonenumber'
 import moment from 'moment-timezone'
 
 let Reg = /\|?(.*)([.|] *?)([0-9]*)$/i
+
 let handler = async function (m, { conn, text, args, usedPrefix, command }) {
     let user = global.db.data.users[m.sender]
     let name2 = conn.getName(m.sender)
@@ -52,13 +53,16 @@ let handler = async function (m, { conn, text, args, usedPrefix, command }) {
     regbot += `ᦷᩘᦷ     ݂   🎫 ፡ \`\`\`12 Tokens\`\`\`\n\n`
     regbot += `> 𝖢𝗈𝗅𝗈𝖼𝖺 *#profile* 𝗉𝖺𝗋𝖺 𝗏𝖾𝗋 𝗍𝗎 𝗉𝖾𝗋𝖿𝗂𝗅`
 
+    // Definir la variable 'club' con el contenido deseado
+    let club = 'Este es el contenido del body que quieres mostrar en la respuesta del anuncio.'
+
     await m.react('💌')
     await conn.sendMessage(m.chat, {
         text: regbot,
         contextInfo: {
             externalAdReply: {
                 title: '෫໋ׅׄ𝆬🍃ິ⃨ 𝖱𝖾𝗀𝗂𝗌𝗍𝗋𝗈 - 𝖲𝗁𝖺𝖽𝗈𝗐 ׅ𝖴𝗅𝗍𝗋𝖺  ׄ ׄ𑁍̵ ֕︵۪۪۪۪᷼ ּ',
-                body: club,
+                body: club, // Aquí usamos la variable definida
                 thumbnailUrl: 'https://files.catbox.moe/nwqdwh.jpg',
                 sourceUrl: 'https://whatsapp.com/channel/0029Vb1X1TDElah1FEQ4xm0K',
                 mediaType: 1,
@@ -76,7 +80,7 @@ let chtxt = `👤 *𝚄𝚂𝙴𝚁:* ${m.pushName || 'Anónimo'}
 ⤷ ${sn}`;
 
     let channelID = '120363384854309225@newsletter';
-        await conn.sendMessage(channelID, {
+    await conn.sendMessage(channelID, {
         text: chtxt,
         contextInfo: {
             externalAdReply: {
