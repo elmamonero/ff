@@ -1,3 +1,5 @@
+const xgc = '⚠️'; // Puedes cambiar el emoji si lo deseas
+
 const handler = async (m, { conn, args }) => {
   const text = args.join(' ').trim();
 
@@ -14,7 +16,6 @@ const handler = async (m, { conn, args }) => {
   }
 };
 
-// Cambia los comandos y la ayuda aquí:
 handler.help = ['setdesc <texto>', 'setdescripcion <texto>'];
 handler.tags = ['grupo'];
 handler.command = ['setdesc', 'setdescripcion'];
