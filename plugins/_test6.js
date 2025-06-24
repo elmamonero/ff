@@ -25,7 +25,7 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 
     const video = searchResults[0];
 
-    // Descarga la miniatura
+    // Descargar miniatura
     let thumbnail;
     try {
       if (!video.miniatura) throw new Error('Miniatura no disponible');
@@ -71,7 +71,7 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 
     const buttons = [...ytButtons, ...spotifyButtons];
 
-    // Enviar mensaje con imagen, texto y botones
+    // Enviar mensaje con imagen, texto y botones juntos
     await conn.sendMessage(m.chat, {
       image: thumbnail,
       caption: messageText,
