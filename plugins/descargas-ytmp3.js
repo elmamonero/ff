@@ -5,7 +5,7 @@ const savetube = {
   api: {
     base: "https://media.savetube.me/api",
     cdn: "/random-cdn",
-    info: "/v2/info", 
+    info: "/v2/info",
     download: "/download"
   },
   headers: {
@@ -18,10 +18,7 @@ const savetube = {
   formats: ['mp3'],
 
   crypto: {
-    hexToBuffer: (hexString) => {
-      const matches = hexString.match(/.{1,2}/g);
-      return Buffer.from(matches.join(''), 'hex');
-    },
+    hexToBuffer: (hexString) => Buffer.from(hexString.match(/.{1,2}/g).join(''), 'hex'),
 
     decrypt: async (enc) => {
       const secretKey = 'C5D58EF67A7584E4A29F6C35BBC4EB12';
@@ -29,22 +26,19 @@ const savetube = {
       const iv = data.slice(0, 16);
       const content = data.slice(16);
       const key = savetube.crypto.hexToBuffer(secretKey);
-
       const decipher = crypto.createDecipheriv('aes-128-cbc', key, iv);
-      let decrypted = decipher.update(content);
-      decrypted = Buffer.concat([decrypted, decipher.final()]);
-
+      const decrypted = Buffer.concat([decipher.update(content), decipher.final()]);
       return JSON.parse(decrypted.toString());
     }
   },
 
-  isUrl: str => { 
-    try { 
-      new URL(str); 
-      return true; 
-    } catch (_) { 
-      return false; 
-    } 
+  isUrl: str => {
+    try {
+      new URL(str);
+      return true;
+    } catch (_) {
+      return false;
+    }
   },
 
   youtube: url => {
@@ -81,9 +75,8 @@ const savetube = {
   },
 
   getCDN: async () => {
-    const response = await savetube.request(savetube.api.cdn, {}, 'get');
-    if (!response.status) return response;
-    return { status: true, code: 200, data: response.data.cdn };
+    const res = await savetube.request(savetube.api.cdn, {}, 'get');
+    return res.status ? { status: true, code: 200, data: res.data.cdn } : res;
   },
 
   download: async (link) => {
@@ -101,12 +94,13 @@ const savetube = {
       const infoRes = await savetube.request(`https://${cdn}${savetube.api.info}`, {
         url: `https://www.youtube.com/watch?v=${id}`
       });
-      if (!infoRes.status) return infoRes;
+      if (!infoRes.status || !infoRes.data?.data)
+        return { status: false, code: 500, error: 'Error al obtener o procesar datos del video.' };
 
       const decrypted = await savetube.crypto.decrypt(infoRes.data.data);
 
       const dl = await savetube.request(`https://${cdn}${savetube.api.download}`, {
-        id: id,
+        id,
         downloadType: 'audio',
         quality: '128',
         key: decrypted.key
@@ -121,7 +115,7 @@ const savetube = {
           format: 'mp3',
           thumbnail: decrypted.thumbnail || `https://i.ytimg.com/vi/${id}/maxresdefault.jpg`,
           download: dl.data.data.downloadUrl,
-          id: id,
+          id,
           key: decrypted.key,
           duration: decrypted.duration,
           quality: '128'
@@ -135,25 +129,25 @@ const savetube = {
 };
 
 const handler = async (m, { conn, args }) => {
-  if (!args[0]) return m.reply(`*🔗 Ingresa una URL de un video o audio de YouTube*`);
+  if (!args[0]) return m.reply(`*❗ Ingresa una URL de un video o audio de YouTube*`);
 
-  let url = args[0];
+  const url = args[0];
   if (!savetube.isUrl(url)) return m.reply("*⚠️ Ingresa un link válido de YouTube.*");
 
   try {
     await m.react('🕒');
-    let res = await savetube.download(url);
+    const res = await savetube.download(url);
+
     if (!res.status) {
       await m.react('✖️');
       return m.reply(`\`\`\`❌ Error:\`\`\` ${res.error}`);
     }
 
     const { title, download } = res.result;
-
-    await conn.sendMessage(m.chat, { 
-      audio: { url: download }, 
-      mimetype: 'audio/mpeg', 
-      fileName: `${title}.mp3` 
+    await conn.sendMessage(m.chat, {
+      audio: { url: download },
+      mimetype: 'audio/mpeg',
+      fileName: `${title}.mp3`
     }, { quoted: m });
 
     await m.react('✅');
