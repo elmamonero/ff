@@ -73,12 +73,12 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 
     const buttons = [...mainButtons, ...spotifyButtons];
 
-    // Luego envía la imagen con botones pero sin caption
+    // Envía la imagen con botones, pero sin caption
     await conn.sendMessage(m.chat, {
       image: thumbnail,
       footer: club,
       buttons,
-      headerType: 4,
+      headerType: 1, // Cambiado a 1 para que los botones se muestren correctamente
       contextInfo: {
         mentionedJid: [m.sender],
         forwardingScore: 999,
@@ -96,7 +96,7 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 
 handler.help = ['play <texto>'];
 handler.tags = ['descargas'];
-handler.command = ['play6'];
+handler.command = ['play'];
 
 export default handler;
 
