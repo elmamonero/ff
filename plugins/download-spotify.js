@@ -1,4 +1,4 @@
-import fetch from 'node-fetch'
+import fetch from 'node-fetch';
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
   if (!text) {
@@ -9,27 +9,35 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   await m.react('⌛');
 
   try {
-    let ouh = await fetch(`https://api.nekorinn.my.id/downloader/spotifyplay?q=${encodeURIComponent(text)}`);
-    let gyh = await ouh.json();
+    const response = await fetch(`https://api.nekorinn.my.id/downloader/spotifyplay?q=${encodeURIComponent(text)}`);
+    const data = await response.json();
 
-    if (!gyh.result || !gyh.result.downloadUrl) {
+    if (!data.result || !data.result.downloadUrl) {
       throw new Error('No se encontró la canción o el enlace es inválido.');
     }
 
+    console.log('URL de audio obtenida:', data.result.downloadUrl);
+
+    // Validar que la URL sea una cadena no vacía
+    if (typeof data.result.downloadUrl !== 'string' || !data.result.downloadUrl.startsWith('http')) {
+      throw new Error('La URL de audio no es válida.');
+    }
+
     await conn.sendMessage(m.chat, {
-      audio: { url: gyh.result.downloadUrl },
+      audio: { url: data.result.downloadUrl },
       mimetype: 'audio/mpeg'
     }, { quoted: m });
 
     await m.react('✅');
   } catch (e) {
+    console.error('Error al enviar audio:', e);
     await m.reply(`❌ Error al obtener el audio:\n${e.message}`);
     await m.react('❌');
   }
-}
+};
 
-handler.help = ['spotify *<texto>*']
-handler.tags = ['descargas']
-handler.command = ['spotify', 'spotifydl', 'spdl']
+handler.help = ['spotify *<texto>*'];
+handler.tags = ['descargas'];
+handler.command = ['spotify', 'spotifydl', 'spdl'];
 
-export default handler
+export default handler;
