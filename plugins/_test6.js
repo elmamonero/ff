@@ -25,16 +25,6 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 
     const video = searchResults[0];
 
-    // Construir el texto para enviar separado
-    let messageText = '◜YouTube - Download◞\n\n';
-    messageText += `*${video.titulo}*\n\n`;
-    messageText += `≡ ⏳ Duración: ${video.duracion || 'No disponible'}\n`;
-    messageText += `≡ 🌴 Autor: ${video.canal || 'Desconocido'}\n`;
-    messageText += `≡ 🌵 Url: ${video.url}\n`;
-
-    // Primero envía el texto
-    await conn.sendMessage(m.chat, { text: messageText }, { quoted: m });
-
     // Descarga la miniatura
     let thumbnail;
     try {
@@ -51,14 +41,15 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
       throw new Error('Miniatura inválida o vacía');
     }
 
-    // Botones para YouTube y Spotify
-    const spotifyButtons = spotifyResults.slice(0, 3).map((s, i) => ({
-      buttonId: `${usedPrefix}spotify ${s.url}`,
-      buttonText: { displayText: `Spotify ${i + 1}` },
-      type: 1,
-    }));
+    // Construir texto del mensaje
+    let messageText = '◜YouTube - Download◞\n\n';
+    messageText += `*${video.titulo}*\n\n`;
+    messageText += `≡ ⏳ Duración: ${video.duracion || 'No disponible'}\n`;
+    messageText += `≡ 🌴 Autor: ${video.canal || 'Desconocido'}\n`;
+    messageText += `≡ 🌵 Url: ${video.url}\n`;
 
-    const mainButtons = [
+    // Botones para YouTube
+    const ytButtons = [
       {
         buttonId: `${usedPrefix}ytmp3 ${video.url}`,
         buttonText: { displayText: '𝖠𝗎𝖽𝗂𝗈' },
@@ -71,14 +62,22 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
       }
     ];
 
-    const buttons = [...mainButtons, ...spotifyButtons];
+    // Botones simples para Spotify (máximo 3)
+    const spotifyButtons = spotifyResults.slice(0, 3).map((s, i) => ({
+      buttonId: `${usedPrefix}spotify ${s.url}`,
+      buttonText: { displayText: `Spotify ${i + 1}` },
+      type: 1,
+    }));
 
-    // Envía la imagen con botones, pero sin caption
+    const buttons = [...ytButtons, ...spotifyButtons];
+
+    // Enviar mensaje con imagen, texto y botones
     await conn.sendMessage(m.chat, {
       image: thumbnail,
+      caption: messageText,
       footer: club,
       buttons,
-      headerType: 1, // Cambiado a 1 para que los botones se muestren correctamente
+      headerType: 4, // Imagen con botones
       contextInfo: {
         mentionedJid: [m.sender],
         forwardingScore: 999,
