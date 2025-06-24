@@ -2,7 +2,7 @@ import yts from 'yt-search';
 import fetch from 'node-fetch';
 import { prepareWAMessageMedia, generateWAMessageFromContent } from '@whiskeysockets/baileys';
 
-const club = '🤖 MiBot - Club Oficial';
+const club = 'Pantheon Bot';
 
 const handler = async (m, { conn, args, usedPrefix, command }) => {
   if (!args[0]) {
