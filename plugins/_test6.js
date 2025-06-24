@@ -2,32 +2,49 @@ import yts from 'yt-search';
 import fetch from 'node-fetch';
 import { prepareWAMessageMedia, generateWAMessageFromContent } from '@whiskeysockets/baileys';
 
-// Define la variable club antes de usarla en el footer
-const club = '🌟 Club Bot Oficial 🌟';
+const club = '🤖 MiBot - Club Oficial';
 
 const handler = async (m, { conn, args, usedPrefix, command }) => {
-  if (!args[0]) return conn.reply(m.chat, `*Por favor, ingresa un título de YouTube.*\n> *\`Ejemplo:\`* ${usedPrefix + command} Corazón Serrano - Olvídalo Corazón`, m);
+  console.log('[Handler] Comando recibido:', command, 'Args:', args);
+
+  if (!args[0]) {
+    console.log('[Handler] No se ingresó título');
+    return conn.reply(
+      m.chat,
+      `*Por favor, ingresa un título de YouTube.*\n> *\`Ejemplo:\`* ${usedPrefix + command} Corazón Serrano - Olvídalo Corazón`,
+      m
+    );
+  }
 
   await m.react('🕒');
   try {
     const query = args.join(" ");
+    console.log('[Handler] Buscando videos para:', query);
+
     const searchResults = await searchVideos(query);
+    console.log('[Handler] Resultados YouTube:', searchResults.length, searchResults);
+
     const spotifyResults = await searchSpotify(query);
+    console.log('[Handler] Resultados Spotify:', spotifyResults.length, spotifyResults);
 
     if (!searchResults.length && !spotifyResults.length) {
       throw new Error('*✖️ No se encontraron resultados.*');
     }
 
     const video = searchResults[0];
+    console.log('[Handler] Video seleccionado:', video);
 
     let thumbnail;
     try {
+      console.log('[Handler] Descargando miniatura:', video.miniatura);
       const res = await fetch(video.miniatura);
       thumbnail = await res.buffer();
-    } catch {
-      console.warn('*✖️ No se pudo obtener la miniatura, usando imagen por defecto.*');
+      console.log('[Handler] Miniatura descargada correctamente');
+    } catch (err) {
+      console.error('[Handler] Error al descargar miniatura:', err.message);
       const res = await fetch('https://telegra.ph/file/36f2a1bd2aaf902e4d1ff.jpg');
       thumbnail = await res.buffer();
+      console.log('[Handler] Miniatura por defecto usada');
     }
 
     let messageText = `\`\`\`◜YouTube - Download◞\`\`\`\n\n`;
@@ -36,6 +53,7 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
     messageText += `≡ *🌴 Autor* ${video.canal || 'Desconocido'}\n`;
     messageText += `≡ *🌵 Url* ${video.url}\n`;
 
+    // Opciones de YouTube adicionales
     const ytSections = searchResults.slice(1, 11).map((v, index) => ({
       title: `${index + 1}┃ ${v.titulo}`,
       rows: [
@@ -51,7 +69,9 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
         }
       ]
     }));
+    console.log('[Handler] Secciones YouTube para menú:', ytSections.length);
 
+    // Opciones de Spotify
     const spotifySections = Array.isArray(spotifyResults) ? spotifyResults.slice(0, 10).map((s, index) => ({
       title: `${index + 1}┃ ${s.titulo}`,
       rows: [
@@ -62,11 +82,12 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
         }
       ]
     })) : [];
+    console.log('[Handler] Secciones Spotify para menú:', spotifySections.length);
 
     await conn.sendMessage(m.chat, {
       image: thumbnail,
       caption: messageText,
-      footer: club, // Aquí ya está definida la variable club
+      footer: club,
       contextInfo: {
         mentionedJid: [m.sender],
         forwardingScore: 999,
@@ -109,21 +130,25 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
     }, { quoted: m });
 
     await m.react('✅');
+    console.log('[Handler] Mensaje enviado con éxito');
   } catch (e) {
-    console.error(e);
+    console.error('[Handler] Error en el comando:', e);
     await m.react('✖️');
     conn.reply(m.chat, '*`Error al buscar el video.`*\n' + e.message, m);
   }
 };
 
 handler.help = ['play <texto>'];
-handler.tags = ['dl'];
-handler.command = ['playtest'];
+handler.tags = ['descargas'];
+handler.command = ['play6'];
 export default handler;
 
+// Función para buscar videos en YouTube
 async function searchVideos(query) {
+  console.log('[searchVideos] Buscando:', query);
   try {
     const res = await yts(query);
+    console.log('[searchVideos] Resultados:', res.videos.length);
     return res.videos.slice(0, 10).map(video => ({
       titulo: video.title,
       url: video.url,
@@ -134,23 +159,29 @@ async function searchVideos(query) {
       duracion: video.duration?.timestamp || 'No disponible'
     }));
   } catch (error) {
-    console.error('Error en yt-search:', error.message);
+    console.error('[searchVideos] Error en yt-search:', error.message);
     return [];
   }
 }
 
+// Función para buscar canciones en Spotify
 async function searchSpotify(query) {
+  console.log('[searchSpotify] Buscando:', query);
   try {
     const res = await fetch(`https://delirius-apiofc.vercel.app/search/spotify?q=${encodeURIComponent(query)}`);
     const data = await res.json();
-    if (!data || !Array.isArray(data.data)) return [];
+    if (!data || !Array.isArray(data.data)) {
+      console.log('[searchSpotify] Respuesta inválida:', data);
+      return [];
+    }
+    console.log('[searchSpotify] Resultados:', data.data.length);
     return data.data.slice(0, 10).map(track => ({
       titulo: track.title,
       url: track.url,
       duracion: track.duration || 'No disponible'
     }));
   } catch (error) {
-    console.error('Error en Spotify API:', error.message);
+    console.error('[searchSpotify] Error en Spotify API:', error.message);
     return [];
   }
 }
