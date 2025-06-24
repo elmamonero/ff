@@ -112,7 +112,7 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 
 handler.help = ['play <texto>'];
 handler.tags = ['dl'];
-handler.command = ['play'];
+handler.command = ['play7'];
 export default handler;
 
 async function searchVideos(query) {
