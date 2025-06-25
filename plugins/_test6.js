@@ -54,7 +54,7 @@ const handler = async (msg, { conn, args }) => {
 
   const finalMsg = `╭━[ *INVOCACIÓN MASIVA* ]━⬣
 ┃🔹 *PANTHEON BOT ⚡*
-┃👤 *Invocado por: ${senderTag}*
+┃👤 *Invocado por:* ${senderTag}
 ┃👥 *Miembros del grupo: ${memberCount}*
 ╰━━━━━━━⋆★⋆━━━━━━━⬣
 
