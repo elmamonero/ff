@@ -68,3 +68,4 @@ export const handler = async (msg, { conn, args }) => {
 };
 
 handler.command = ["todostest"];
+export default handler;
