@@ -56,5 +56,5 @@ const handler = async (msg, { conn, args }) => {
   }, { quoted: msg });
 };
 
-handler.command = ["tagall", "invocar", "todos"];
+handler.command = ["todostest"];
 module.exports = handler;
