@@ -23,6 +23,7 @@ const handler = async (msg, { conn, text }) => {
   const usedPrefix = prefixes[subbotID] || ".";
 
   if (!text || (!text.includes('youtube.com') && !text.includes('youtu.be'))) {
+    console.log('⚠️ No se detectó un enlace válido de YouTube.');
     return await conn.sendMessage(msg.key.remoteJid, {
       text: `✳️ Usa el comando correctamente:\n\n📌 Ejemplo: *${usedPrefix}ytmp4doc* https://youtube.com/watch?v=...`
     }, { quoted: msg });
@@ -39,7 +40,9 @@ const handler = async (msg, { conn, text }) => {
     for (let quality of qualities) {
       try {
         const apiUrl = `https://api.neoxr.eu/api/youtube?url=${encodeURIComponent(text)}&type=video&quality=${quality}&apikey=russellxz`;
+        console.log(`🔍 Intentando obtener video (${quality})...`);
         const response = await axios.get(apiUrl);
+        console.log('📡 Respuesta de la API:', response.data);
         if (response.data?.status && response.data?.data?.url) {
           videoData = {
             url: response.data.data.url,
@@ -53,25 +56,39 @@ const handler = async (msg, { conn, text }) => {
             publish: response.data.publish || 'Desconocido',
             id: response.data.id || ''
           };
+          console.log('✅ Video encontrado:', videoData);
           break;
         }
-      } catch { continue; }
+      } catch (err) {
+        console.error(`❌ Error en calidad ${quality}:`, err.message);
+        continue;
+      }
     }
 
-    if (!videoData) throw new Error('No se pudo obtener el video en ninguna calidad');
+    if (!videoData) {
+      console.error('❌ No se pudo obtener el video en ninguna calidad');
+      throw new Error('No se pudo obtener el video en ninguna calidad');
+    }
 
     const tmpDir = path.join(__dirname, '../tmp');
-    if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir);
+    if (!fs.existsSync(tmpDir)) {
+      console.log('📂 Creando directorio tmp...');
+      fs.mkdirSync(tmpDir);
+    }
     const filePath = path.join(tmpDir, `${Date.now()}_video.mp4`);
+    console.log('📥 Descargando video a:', filePath);
 
     const response = await axios.get(videoData.url, {
       responseType: 'stream',
       headers: { 'User-Agent': 'Mozilla/5.0' }
     });
     await streamPipeline(response.data, fs.createWriteStream(filePath));
+    console.log('✅ Video descargado correctamente.');
 
     const stats = fs.statSync(filePath);
+    console.log('📊 Tamaño del archivo:', stats.size);
     if (!stats || stats.size < 100000) {
+      console.error('❌ El video descargado está vacío o incompleto');
       fs.unlinkSync(filePath);
       throw new Error('El video descargado está vacío o incompleto');
     }
@@ -89,6 +106,7 @@ const handler = async (msg, { conn, text }) => {
 └ 🔗 https://youtu.be/${videoData.id}
 ╰──────────────────────────────╯`;
 
+    console.log('🔄 Enviando video al chat...');
     await conn.sendMessage(msg.key.remoteJid, {
       document: fs.readFileSync(filePath),
       mimetype: 'video/mp4',
@@ -97,13 +115,14 @@ const handler = async (msg, { conn, text }) => {
     }, { quoted: msg });
 
     fs.unlinkSync(filePath);
+    console.log('✅ Video enviado y archivo eliminado.');
 
     await conn.sendMessage(msg.key.remoteJid, {
       react: { text: '✅', key: msg.key }
     });
 
   } catch (err) {
-    console.error(err);
+    console.error('❌ Error:', err);
     await conn.sendMessage(msg.key.remoteJid, {
       text: `❌ *Error:* ${err.message}`
     }, { quoted: msg });
