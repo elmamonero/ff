@@ -66,7 +66,7 @@ module.exports = async (msg, { conn, text }) => {
 ┣ 📄 Audio Doc     (4 / audiodoc)
 ┗ 📁 Video Doc     (3 / videodoc)
 
-📦 Si usas termux o no estás en Sky Ultra Plus:
+
 ┣ 🎵 ${pref}play5 ${text}
 ┣ 🎥 ${pref}play6 ${text}
 ┗ ⚠️ ${pref}ff
