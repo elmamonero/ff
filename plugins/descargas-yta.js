@@ -1,9 +1,8 @@
 import yts from 'yt-search'
 import fetch from 'node-fetch'
 
-const xdownload = '🔊 Descargar' // Puedes personalizar este texto
-const dev = 'Bot creado por TuNombre' // Personaliza el autor
-const fkontak = {} // Si tienes un mensaje de contacto, ponlo aquí o déjalo vacío
+const xdownload = '🔊 Descargar'
+const dev = 'Bot creado por TuNombre'
 
 const handler = async (m, { conn, command, text, usedPrefix }) => {
   if (!text) {
@@ -20,7 +19,7 @@ const handler = async (m, { conn, command, text, usedPrefix }) => {
     }
 
     const vid = search.videos[0]
-    const { title, thumbnail, timestamp, views, ago, url, author, description } = vid
+    const { title, thumbnail, timestamp, url, author } = vid
 
     const captext = `\`\`\`◜YTA - Download◞\`\`\`
 
@@ -34,7 +33,7 @@ const handler = async (m, { conn, command, text, usedPrefix }) => {
     await conn.sendMessage(m.chat, {
       image: { url: thumbnail },
       caption: captext
-    }, { quoted: fkontak })
+    }, { quoted: m })
 
     const headers = {
       "accept": "*/*",
@@ -70,8 +69,7 @@ const handler = async (m, { conn, command, text, usedPrefix }) => {
     await m.react('✅')
 
   } catch (e) {
-    console.error(e)
-    await m.react('✖️') // Error
+    await m.react('✖️')
     m.reply('*⛔ Ocurrió un error al intentar descargar o enviar el audio.*')
   }
 }
