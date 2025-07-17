@@ -1,35 +1,59 @@
-let handler = async (m, { conn, text, isRowner }) => {
+import fs from 'fs';
 
-  if (!text) {
-    return m.reply('🎩 Debes proporcionar un emoji válido después del comando. Ejemplo: `.setemoji 💛`');
-  }
+// Handler para el comando de pago  
+const handler = async (m, { conn, text, chat }) => {  
+  const datas = global;  
+  const idioma = datas.db.data.users[m.sender].language || global.defaultLenguaje;  
 
-  const emoji = text.trim();
+  // Obtener el ID del grupo o chat actual  
+  const chatId = m.chat;  
 
-  if (!isEmoji(emoji)) {
-    return m.reply('🎩 El texto proporcionado no es un emoji válido. Asegúrate de que sea un emoji real.');
-  }
+  // Inicializar pago para este grupo si no existe  
+  if (!global.db.data.pago) {  
+    global.db.data.pago = {};  
+  }  
+  if (!global.db.data.pago[chatId]) {  
+    global.db.data.pago[chatId] = {};  
+  }  
 
-  try {
-    global.db.data.chats[m.chat].customEmoji = emoji;
+  const groupPago = global.db.data.pago[chatId]; // Pago específico del grupo  
 
-    m.reply(`🎩 El emoji del grupo ha sido actualizado correctamente a: ${emoji}`);
-  } catch (error) {
-    console.error(error);
-    m.reply('🎩 Hubo un error al intentar cambiar el emoji.');
-  }
-};
+  // Comando para consultar el pago  
+  if (m.text.startsWith('.pago')) {  
+    if (Object.keys(groupPago).length === 0) {  
+      m.reply("🧑‍💼✨ **𝐈𝐧𝐯𝐞𝐧𝐭𝐚𝐫𝐢𝐨 𝐯𝐚𝐜𝐢𝐨** ✨"); // Mensaje si no hay productos  
+      return;  
+    }  
 
-const isEmoji = (text) => {
-  const emojiRegex =
-    /(?:\p{Emoji_Presentation}|\p{Extended_Pictographic}|\p{Emoji})/gu;
-  return emojiRegex.test(text) && text.length <= 2;
-};
+    let PagoMessage = '';  
+    for (const product in groupPago) {  
+      PagoMessage += `${product}\n`; // Agregar solo el nombre del producto  
+    }  
 
-handler.help = ['setemoji *<emoji>*'];
-handler.tags = ['grupo'];
-handler.command = ['setemoji', 'setemo'];
-handler.admin = true;
-handler.group = true;
+    m.reply(PagoMessage.trim()); // Enviar la lista de pagos sin otro texto adicional  
+    return;  
+  }  
+
+  // Comando para establecer el pago  
+  if (m.text.startsWith('.setpago')) {  
+    if (!text) {  
+      m.reply("𝙀𝙨𝙘𝙧𝙞𝙗𝙚 𝙩𝙪 𝙢𝙚𝙩𝙤𝙙𝙤 𝙙𝙚 𝙥𝙖𝙜𝙤🏛️."); // Mensaje de uso correcto  
+      return;  
+    }  
+
+    const product = text; // Usar todo el texto como producto  
+
+    // Eliminar pagos anteriores y agregar el nuevo producto al pago
+    global.db.data.pago[chatId] = {}; // Reiniciar el pago específico del grupo  
+    global.db.data.pago[chatId][product] = true; // Almacenar el producto como existente  
+    fs.writeFileSync('./database.json', JSON.stringify(global.db)); // Guardar los cambios en la base de datos
+    m.reply(`𝙈𝙚𝙩𝙤𝙙𝙤 𝙙𝙚 𝙋𝙖𝙜𝙤 𝘼𝙘𝙩𝙪𝙖𝙡𝙞𝙯𝙖𝙙𝙤🏛️`);  
+  }  
+};  
+
+handler.help = ['pago', 'setpago <producto>', 'resetpago'];  
+handler.tags = ['group'];  
+handler.command = ['pago', 'setpago'];  
+handler.admin = true;  
 
 export default handler;
