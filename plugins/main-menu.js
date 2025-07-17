@@ -57,6 +57,14 @@ ${readMore}
 ⠞🪻੭‎ ${usedPrefix}off *opción*
 ⠞🪻੭‎ ${usedPrefix}manual
 
+↷✦; \`SISTEMA DE VENTAS\` ❞ 🪷︵᷼ 
+⠞🪷੭‎ ${usedPrefix}setpago *texto*
+⠞🪷੭‎ ${usedPrefix}pago
+⠞🪷੭‎ ${usedPrefix}setstock *texto*
+⠞🪷੭‎ ${usedPrefix}stock
+⠞🪷੭‎ ${usedPrefix}setcombos *texto*
+⠞🪷੭‎ ${usedPrefix}combos
+
 ↷✦; \`DOWNLOAD\` ❞ 🪷︵᷼ 
 ⠞🪷੭‎ ${usedPrefix}play *texto*
 ⠞🪷੭‎ ${usedPrefix}ytmp4doc *texto*
