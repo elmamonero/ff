@@ -17,8 +17,6 @@ const fetchDownloadUrl = async (videoUrl) => {
       console.log(`[fetchDownloadUrl] Respuesta de API:`, data);
 
       let result = data?.result || data?.data;
-
-      // Adaptación para la estructura de Vreden
       const audioUrl = result?.download?.url || result?.dl_url || result?.download || result?.dl;
       const title = result?.metadata?.title || result?.title || "audio";
 
@@ -53,14 +51,29 @@ const sendAudioWithRetry = async (conn, chat, audioUrl, videoTitle, maxRetries =
     console.error(`[sendAudioWithRetry] Error al obtener thumbnail:`, error.message);
   }
 
+  let audioBuffer;
+
+  // Descargar el audio (buffer)
+  try {
+    console.log(`[sendAudioWithRetry] Descargando el archivo de audio desde ${audioUrl} ...`);
+    const audioResp = await axios.get(audioUrl, {responseType: 'arraybuffer', timeout: 25000});
+    audioBuffer = Buffer.from(audioResp.data, 'binary');
+    console.log(`[sendAudioWithRetry] Audio descargado exitosamente (${audioBuffer.length} bytes)`);
+  } catch (err) {
+    console.error(`[sendAudioWithRetry] Error al descargar el audio:`, err.message);
+    throw new Error('No se pudo descargar el audio para enviarlo.');
+  }
+
+  // Reintentar el envío
   while (attempt < maxRetries) {
     try {
       console.log(`[sendAudioWithRetry] Enviando audio, intento #${attempt + 1}...`);
       await conn.sendMessage(
         chat,
         {
-          audio: { url: audioUrl },
+          audio: audioBuffer,
           mimetype: 'audio/mpeg',
+          fileName: (videoTitle || "audio") + ".mp3",
           contextInfo: {
             externalAdReply: {
               title: videoTitle,
