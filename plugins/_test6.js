@@ -54,7 +54,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
             m.reply('❌ Ocurrió un error al procesar tu solicitud.');
         }
     } else if (command === 'divisas') {
-        // Handler para mostrar lista de divisas
+        // Handaler para mostrar lista de divisas
         const message = `
 💱 *DIVISAS DE LATAM*
 *┈┈┈┈┈┈┈┈┈┈┈┈┈┈*
