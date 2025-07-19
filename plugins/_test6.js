@@ -54,13 +54,13 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
             m.reply('❌ Ocurrió un error al procesar tu solicitud.');
         }
     } else if (command === 'divisas') {
-        // Handaler para mostrar lista de divisas
+        // Handler para mostrar lista de divisas
         const message = `
 💱 *DIVISAS DE LATAM*
 *┈┈┈┈┈┈┈┈┈┈┈┈┈┈*
 
 PAÍS ┋ MONEDA
-🇭🇳 ┋ HNL
+🇭🇳 ┋ HNL  
 🇺🇸 ┋ USD
 🇲🇽 ┋ MXN
 🇨🇴 ┋ COP
