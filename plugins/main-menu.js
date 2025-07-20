@@ -59,11 +59,13 @@ ${readMore}
 
 ↷✦; \`SISTEMA DE VENTAS\` ❞ 🛍️ 
 ⠞🛍️੭‎ ${usedPrefix}setpago *texto*
-⠞🛍️੭‎‎ ${usedPrefix}pago
-⠞🛍️੭‎‎ ${usedPrefix}setstock *texto*
-⠞🛍️੭‎‎ ${usedPrefix}stock
-⠞🛍️੭‎‎ ${usedPrefix}setcombos *texto*
+⠞🛍️੭‎ ${usedPrefix}pago
+⠞🛍️੭‎ ${usedPrefix}setstock *texto*
+⠞🛍️੭‎ ${usedPrefix}stock
+⠞🛍️੭‎ ${usedPrefix}setcombos *texto*
 ⠞🛍️੭‎ ${usedPrefix}combos
+⠞🛍️੭‎ ${usedPrefix}cambiar *texto*
+⠞🛍️੭‎ ${usedPrefix}divisas
 
 ↷✦; \`DOWNLOAD\` ❞ 🪷︵᷼ 
 ⠞🪷੭‎ ${usedPrefix}play *texto*
