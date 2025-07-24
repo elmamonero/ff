@@ -10,6 +10,7 @@ const handler = async (msg, { conn, args }) => {
   const botNumber = rawID.split(":")[0].replace(/[^0-9]/g, "");
   const senderNum = senderJid.replace(/[^0-9]/g, "");
 
+  // Leer prefijos (por si hay varios bots con distinto prefijo)
   const prefixPath = path.resolve("prefixes.json");
   let prefixes = {};
   if (fs.existsSync(prefixPath)) {
@@ -23,17 +24,18 @@ const handler = async (msg, { conn, args }) => {
   const commandMatch = body.match(commandRegex);
   const command = commandMatch ? commandMatch[1] : "";
 
-  // ✅ Conteo automático por usuario y grupo: aplica a todo tipo de mensaje
+  // ✅ Conteo automático por usuario y grupo: aplica a TODO tipo de mensaje recibido en grupos
   if (chatId.endsWith("@g.us")) {
     if (!global.db.data.groupChats) global.db.data.groupChats = {};
     if (!global.db.data.groupChats[chatId]) global.db.data.groupChats[chatId] = {};
-    if (!global.db.data.groupChats[chatId][senderJid]) global.db.data.groupChats[chatId][senderJid] = { chat: 0 };
+    if (!global.db.data.groupChats[chatId][senderJid] == null) global.db.data.groupChats[chatId][senderJid] = { chat: 0 };
     global.db.data.groupChats[chatId][senderJid].chat += 1;
   }
 
-  // 👇 El resto se ejecuta solo si es comando
+  // Si no es comando, no hacer nada más
   if (!command) return;
 
+  // El comando solo funciona en grupos
   if (!chatId.endsWith("@g.us")) {
     return await conn.sendMessage(
       chatId,
@@ -44,17 +46,9 @@ const handler = async (msg, { conn, args }) => {
 
   const metadata = await conn.groupMetadata(chatId);
   const participants = metadata.participants;
-  const participant = participants.find((p) => p.id.includes(senderNum));
-  const isAdmin = participant?.admin === "admin" || participant?.admin === "superadmin";
-  const isBot = botNumber === senderNum;
 
-  if (!isAdmin && !isBot) {
-    return await conn.sendMessage(
-      chatId,
-      { text: "❌ Solo los administradores del grupo o el subbot pueden usar este comando." },
-      { quoted: msg }
-    );
-  }
+  // Eliminar restricción de admin para ver el total de mensajes
+  // Si quieres hacer otros comandos solo para admins, puedes agregar chequeo aquí.
 
   // 📊 Mostrar total de mensajes por usuario
   if (command === "totalmensajes") {
@@ -79,8 +73,19 @@ const handler = async (msg, { conn, args }) => {
     );
   }
 
-  // 🔄 Resetear el contador solo del grupo actual
+  // 🔄 Resetear el contador solo del grupo actual — este comando sigue solo para admins
   if (command === "resetmensaje") {
+    // Chequeo que sea admin para resetear
+    const participant = participants.find((p) => p.id === senderJid);
+    const isAdmin = participant?.admin === "admin" || participant?.admin === "superadmin";
+    if (!isAdmin) {
+      return await conn.sendMessage(
+        chatId,
+        { text: "❌ Solo los administradores del grupo pueden usar este comando." },
+        { quoted: msg }
+      );
+    }
+
     participants.forEach((user) => {
       if (!global.db.data.groupChats[chatId]) global.db.data.groupChats[chatId] = {};
       global.db.data.groupChats[chatId][user.id] = { chat: 0 };
@@ -95,7 +100,7 @@ const handler = async (msg, { conn, args }) => {
 };
 
 handler.command = /^(totalmensajes|resetmensaje)$/i;
-handler.admin = true;
-handler.botAdmin = true;
+// Quité handler.admin y handler.botAdmin para que cualquiera pueda usar .totalmensajes
+// Pero resetmensaje sigue protegido con chequeo manual en el código
 
 export default handler;
