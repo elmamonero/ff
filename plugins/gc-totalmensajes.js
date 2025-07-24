@@ -2,19 +2,13 @@ import fs from "fs";
 import path from "path";
 
 const handler = async (msg, { conn, args }) => {
-  const senderJid = msg.key.participant || msg.key.remoteJid;
   const chatId = msg.key.remoteJid;
+  const senderJid = msg.key.participant || msg.key.remoteJid;
 
-  // 🧮 Conteo por grupo
-  if (!global.db.data.groupChats) global.db.data.groupChats = {};
-  if (!global.db.data.groupChats[chatId]) global.db.data.groupChats[chatId] = {};
-  if (!global.db.data.groupChats[chatId][senderJid]) global.db.data.groupChats[chatId][senderJid] = { chat: 0 };
-  global.db.data.groupChats[chatId][senderJid].chat += 1;
-
-  // ⚙️ Obtener datos del bot
   const rawID = conn.user?.id || "";
   const subbotID = rawID.split(":")[0] + "@s.whatsapp.net";
   const botNumber = rawID.split(":")[0].replace(/[^0-9]/g, "");
+  const senderNum = senderJid.replace(/[^0-9]/g, "");
 
   const prefixPath = path.resolve("prefixes.json");
   let prefixes = {};
@@ -23,8 +17,22 @@ const handler = async (msg, { conn, args }) => {
   }
   const usedPrefix = prefixes[subbotID] || ".";
 
-  const senderNum = senderJid.replace(/[^0-9]/g, "");
-  const senderTag = `@${senderNum}`;
+  const body = (msg.message?.conversation || msg.message?.extendedTextMessage?.text || "").toLowerCase();
+  const prefixEscaped = usedPrefix.replace(/[|\\{}()[\]^$+*?.]/g, "\\$&");
+  const commandRegex = new RegExp(`^${prefixEscaped}(\\w+)`);
+  const commandMatch = body.match(commandRegex);
+  const command = commandMatch ? commandMatch[1] : "";
+
+  // ✅ Conteo automático por usuario y grupo: aplica a todo tipo de mensaje
+  if (chatId.endsWith("@g.us")) {
+    if (!global.db.data.groupChats) global.db.data.groupChats = {};
+    if (!global.db.data.groupChats[chatId]) global.db.data.groupChats[chatId] = {};
+    if (!global.db.data.groupChats[chatId][senderJid]) global.db.data.groupChats[chatId][senderJid] = { chat: 0 };
+    global.db.data.groupChats[chatId][senderJid].chat += 1;
+  }
+
+  // 👇 El resto se ejecuta solo si es comando
+  if (!command) return;
 
   if (!chatId.endsWith("@g.us")) {
     return await conn.sendMessage(
@@ -36,7 +44,6 @@ const handler = async (msg, { conn, args }) => {
 
   const metadata = await conn.groupMetadata(chatId);
   const participants = metadata.participants;
-
   const participant = participants.find((p) => p.id.includes(senderNum));
   const isAdmin = participant?.admin === "admin" || participant?.admin === "superadmin";
   const isBot = botNumber === senderNum;
@@ -49,15 +56,10 @@ const handler = async (msg, { conn, args }) => {
     );
   }
 
-  const body = (msg.message?.conversation || msg.message?.extendedTextMessage?.text || "").toLowerCase();
-  const prefixEscaped = usedPrefix.replace(/[|\\{}()[\]^$+*?.]/g, "\\$&");
-  const commandRegex = new RegExp(`^${prefixEscaped}(\\w+)`);
-  const commandMatch = body.match(commandRegex);
-  const command = commandMatch ? commandMatch[1] : "";
-
+  // 📊 Mostrar total de mensajes por usuario
   if (command === "totalmensajes") {
     let usuariosMensajes = participants
-      .filter((user) => !user.id.includes(botNumber)) // 🚫 Excluir al bot
+      .filter((user) => !user.id.includes(botNumber))
       .map((user) => ({
         id: user.id,
         mensajes: global.db.data.groupChats[chatId]?.[user.id]?.chat || 0,
@@ -75,7 +77,10 @@ const handler = async (msg, { conn, args }) => {
       { text: texto, mentions: usuariosMensajes.map((u) => u.id) },
       { quoted: msg }
     );
-  } else if (command === "resetmensaje") {
+  }
+
+  // 🔄 Resetear el contador solo del grupo actual
+  if (command === "resetmensaje") {
     participants.forEach((user) => {
       if (!global.db.data.groupChats[chatId]) global.db.data.groupChats[chatId] = {};
       global.db.data.groupChats[chatId][user.id] = { chat: 0 };
