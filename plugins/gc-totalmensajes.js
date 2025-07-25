@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-const conteoPath = path.resolve("./conteo.json");
+const conteoPath = path.resolve("./conteo.js");
 
 const handler = async (msg, { conn, args }) => {
   const rawID = conn.user?.id || "";
