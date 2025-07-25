@@ -1,61 +1,86 @@
-🧩 Código del comando *totalmensaje*:
-
-```js
-const fs = require("fs");
-const path = require("path");
+import fs from "fs";
+import path from "path";
 
 const conteoPath = path.resolve("./conteo.json");
 
-const handler = async (msg, { conn, command }) => {
-  const chatId = msg.key.remoteJid;
-  const isGroup = chatId.endsWith("@g.us");
+const handler = async (msg, { conn, args }) => {
+  const rawID = conn.user?.id || "";
+  const subbotID = rawID.split(":")[0] + "@s.whatsapp.net";
+  const botNumber = rawID.split(":")[0].replace(/[^0-9]/g, "");
 
-  if (!isGroup) {
-    return await conn.sendMessage(chatId, {
-      text: "❌ Este comando solo puede usarse en grupos."
-    }, { quoted: msg });
+  const chatId = msg.key.remoteJid;
+  const senderJid = msg.key.participant || msg.key.remoteJid;
+  const senderNum = senderJid.replace(/[^0-9]/g, "");
+  const senderTag = `@${senderNum}`;
+
+  if (!chatId.endsWith("@g.us")) {
+    return await conn.sendMessage(
+      chatId,
+      { text: "❌ Este comando solo puede usarse en grupos." },
+      { quoted: msg }
+    );
   }
 
-  // Si no existe el archivo, lo crea vacío
+  const metadata = await conn.groupMetadata(chatId);
+  const participants = metadata.participants;
+  const memberCount = participants.length;
+
+  const participant = participants.find((p) => p.id.includes(senderNum));
+  const isAdmin = participant?.admin === "admin" || participant?.admin === "superadmin";
+  const isBot = botNumber === senderNum;
+
+  if (!isAdmin && !isBot) {
+    return await conn.sendMessage(
+      chatId,
+      { text: "❌ Solo los administradores del grupo o el subbot pueden usar este comando." },
+      { quoted: msg }
+    );
+  }
+
+  // Cargar datos del conteo de mensajes
   const conteoData = fs.existsSync(conteoPath)
     ? JSON.parse(fs.readFileSync(conteoPath, "utf-8"))
     : {};
 
-  // === RESET DE MENSAJES ===
-  if (command === "resetmensaje") {
+  // El primer argumento definirá la acción: resetmensaje o totalmensaje
+  const accion = (args[0] || "").toLowerCase();
+
+  if (accion === "resetmensaje") {
     if (conteoData[chatId]) {
       delete conteoData[chatId];
       fs.writeFileSync(conteoPath, JSON.stringify(conteoData, null, 2));
     }
-
-    return await conn.sendMessage(chatId, {
-      text: "♻️ *Conteo de mensajes reiniciado para este grupo.*"
-    }, { quoted: msg });
+    return await conn.sendMessage(
+      chatId,
+      { text: "♻️ *Conteo de mensajes reiniciado para este grupo.*" },
+      { quoted: msg }
+    );
   }
 
-  // === TOTAL MENSAJES / TOP 10 ===
+  // Mostrar top 10 usuarios con más mensajes
   const groupData = conteoData[chatId];
 
   if (!groupData || Object.keys(groupData).length === 0) {
-    return await conn.sendMessage(chatId, {
-      text: "⚠️ No hay datos de mensajes todavía en este grupo."
-    }, { quoted: msg });
+    return await conn.sendMessage(
+      chatId,
+      { text: "⚠️ No hay datos de mensajes todavía en este grupo." },
+      { quoted: msg }
+    );
   }
-
-  const metadata = await conn.groupMetadata(chatId);
-  const groupName = metadata.subject || "Grupo";
 
   const usuariosOrdenados = Object.entries(groupData)
     .sort(([, a], [, b]) => b - a)
     .slice(0, 10);
 
   if (usuariosOrdenados.length === 0) {
-    return await conn.sendMessage(chatId, {
-      text: "⚠️ Aún no hay mensajes contados en este grupo."
-    }, { quoted: msg });
+    return await conn.sendMessage(
+      chatId,
+      { text: "⚠️ Aún no hay mensajes contados en este grupo." },
+      { quoted: msg }
+    );
   }
 
-  let texto = `🏆 *Top 10 usuarios más activos en ${groupName}:*\n\n`;
+  let texto = `🏆 *Top 10 usuarios más activos en ${metadata.subject || "este grupo"}:*\n\n`;
   const menciones = [];
 
   usuariosOrdenados.forEach(([userId, total], index) => {
@@ -64,12 +89,15 @@ const handler = async (msg, { conn, command }) => {
     if (!menciones.includes(userId)) menciones.push(userId);
   });
 
-  await conn.sendMessage(chatId, {
-    text: texto,
-    mentions: menciones
-  }, { quoted: msg });
+  await conn.sendMessage(
+    chatId,
+    {
+      text: texto,
+      mentions: menciones
+    },
+    { quoted: msg }
+  );
 };
 
-handler.command = ["totalmensaje", "resetmensaje"];
-module.exports = handler;
-```
+handler.command = /^totalmensaje|resetmensaje$/i;
+export default handler;
