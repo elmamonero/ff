@@ -1,89 +1,75 @@
-import fs from "fs";
-import path from "path";
+🧩 Código del comando *totalmensaje*:
 
-const handler = async (msg, { conn }) => {
-  try {
-    const chatId = msg.key.remoteJid;
-    if (!chatId.endsWith("@g.us")) return;
-    const senderJid = msg.key.participant || msg.key.remoteJid;
+```js
+const fs = require("fs");
+const path = require("path");
 
-    const rawID = conn.user?.id || "";
-    const botNumber = rawID.split(":")[0].replace(/[^0-9]/g, "");
+const conteoPath = path.resolve("./conteo.json");
 
-    // Leer prefijo
-    const prefixPath = path.resolve("prefixes.json");
-    let prefixes = {};
-    if (fs.existsSync(prefixPath)) {
-      prefixes = JSON.parse(fs.readFileSync(prefixPath, "utf-8"));
-    }
-    const usedPrefix = prefixes[rawID.split(":")[0] + "@s.whatsapp.net"] || ".";
+const handler = async (msg, { conn, command }) => {
+  const chatId = msg.key.remoteJid;
+  const isGroup = chatId.endsWith("@g.us");
 
-    const body = (msg.message?.conversation || msg.message?.extendedTextMessage?.text || "").toLowerCase();
-
-    // --- CONTAR TODOS los mensajes en grupos
-    if (!global.db) global.db = {};
-    if (!global.db.data) global.db.data = {};
-    if (!global.db.data.groupChats) global.db.data.groupChats = {};
-    if (!global.db.data.groupChats[chatId] == null) global.db.data.groupChats[chatId] = {};
-    if (!global.db.data.groupChats[chatId][senderJid] == null) global.db.data.groupChats[chatId][senderJid] = { chat: 0 };
-
-    // **Aquí el conteo independiente de si es comando o no**
-    global.db.data.groupChats[chatId][senderJid].chat += 1;
-
-    // --- SOLO responder si es comando
-    if (!body.startsWith(usedPrefix)) return;
-    const command = body.slice(usedPrefix.length).trim().split(/\s+/)[0];
-
-    const metadata = await conn.groupMetadata(chatId);
-    const participants = metadata.participants;
-
-    if (command === "totalmensajes") {
-      let usuariosMensajes = participants
-        .filter(user => !user.id.includes(botNumber))
-        .map(user => ({
-          id: user.id,
-          mensajes: global.db.data.groupChats[chatId]?.[user.id]?.chat || 0,
-        }));
-      usuariosMensajes.sort((a, b) => b.mensajes - a.mensajes);
-
-      let texto = `📊 *Total de Mensajes por Usuario en este Grupo* 📊\n\n` + 
-        usuariosMensajes.map((u, i) => `${i + 1}. @${u.id.split("@")[0]} - *${u.mensajes}* mensajes`).join("\n");
-
-      return await conn.sendMessage(
-        chatId,
-        { text: texto, mentions: usuariosMensajes.map(u => u.id) },
-        { quoted: msg }
-      );
-    }
-
-    if (command === "resetmensaje") {
-      const sender = participants.find(p => p.id === senderJid);
-      const isAdmin = sender?.admin === "admin" || sender?.admin === "superadmin";
-      const isBot = botNumber === senderJid.replace(/[^0-9]/g, "");
-
-      if (!isAdmin && !isBot) {
-        return await conn.sendMessage(
-          chatId,
-          { text: "❌ Solo administradores o el bot pueden usar este comando." },
-          { quoted: msg }
-        );
-      }
-
-      participants.forEach(user => {
-        if (!global.db.data.groupChats[chatId]) global.db.data.groupChats[chatId] = {};
-        global.db.data.groupChats[chatId][user.id] = { chat: 0 };
-      });
-
-      return await conn.sendMessage(
-        chatId,
-        { text: "✅ Contador de mensajes reiniciado para todos los participantes." },
-        { quoted: msg }
-      );
-    }
-  } catch (error) {
-    console.error("Error en handler totalmensajes:", error);
+  if (!isGroup) {
+    return await conn.sendMessage(chatId, {
+      text: "❌ Este comando solo puede usarse en grupos."
+    }, { quoted: msg });
   }
+
+  // Si no existe el archivo, lo crea vacío
+  const conteoData = fs.existsSync(conteoPath)
+    ? JSON.parse(fs.readFileSync(conteoPath, "utf-8"))
+    : {};
+
+  // === RESET DE MENSAJES ===
+  if (command === "resetmensaje") {
+    if (conteoData[chatId]) {
+      delete conteoData[chatId];
+      fs.writeFileSync(conteoPath, JSON.stringify(conteoData, null, 2));
+    }
+
+    return await conn.sendMessage(chatId, {
+      text: "♻️ *Conteo de mensajes reiniciado para este grupo.*"
+    }, { quoted: msg });
+  }
+
+  // === TOTAL MENSAJES / TOP 10 ===
+  const groupData = conteoData[chatId];
+
+  if (!groupData || Object.keys(groupData).length === 0) {
+    return await conn.sendMessage(chatId, {
+      text: "⚠️ No hay datos de mensajes todavía en este grupo."
+    }, { quoted: msg });
+  }
+
+  const metadata = await conn.groupMetadata(chatId);
+  const groupName = metadata.subject || "Grupo";
+
+  const usuariosOrdenados = Object.entries(groupData)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 10);
+
+  if (usuariosOrdenados.length === 0) {
+    return await conn.sendMessage(chatId, {
+      text: "⚠️ Aún no hay mensajes contados en este grupo."
+    }, { quoted: msg });
+  }
+
+  let texto = `🏆 *Top 10 usuarios más activos en ${groupName}:*\n\n`;
+  const menciones = [];
+
+  usuariosOrdenados.forEach(([userId, total], index) => {
+    const num = userId.split("@")[0];
+    texto += `${index + 1}.- @${num} ➤ ${total} mensajes\n`;
+    if (!menciones.includes(userId)) menciones.push(userId);
+  });
+
+  await conn.sendMessage(chatId, {
+    text: texto,
+    mentions: menciones
+  }, { quoted: msg });
 };
 
-// No poner handler.command para que el handler se ejecute en todos los mensajes
-export default handler;
+handler.command = ["totalmensaje", "resetmensaje"];
+module.exports = handler;
+```
