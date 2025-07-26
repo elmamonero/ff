@@ -42,7 +42,7 @@ const handler = async (msg, { conn, args }) => {
     ? JSON.parse(fs.readFileSync(conteoPath, "utf-8"))
     : {};
 
-  // El primer argumento definirá la acción: resetmensaje o totalmensaje
+  // El primer argumento definiráa la acción: resetmensaje o totalmensaje
   const accion = (args[0] || "").toLowerCase();
 
   if (accion === "resetmensaje") {
