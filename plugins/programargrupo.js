@@ -1,10 +1,10 @@
 import fs from 'fs';
 import path from 'path';
 
-// Rutas para archivos de configuración
+// Ruta para archivo de configuración de programación
 const progPath = path.resolve('./programaciongrupo.js');
 
-// --- Gestión de programación ---
+// --- Funciones para leer y guardar configuración ---
 async function leerProgramacion() {
   try {
     const datos = await import(progPath + '?update=' + Date.now());
@@ -19,7 +19,7 @@ function guardarProgramacion(data) {
   fs.writeFileSync(progPath, contenido);
 }
 
-// --- Zonas soportadas ---
+// --- Zonas horarias soportadas ---
 const zonasSoportadas = {
   'mexico': 'America/Mexico_City',
   'bogota': 'America/Bogota',
@@ -28,7 +28,7 @@ const zonasSoportadas = {
   'venezuela': 'America/Caracas',
 };
 
-// Parseo de hora tipo "8:00 am", "8 30 pm", "10:00", "7 am", etc.
+// --- Función para parsear hora en formato "8:00 am", "7 am", "10:30", etc. ---
 function parsearHora(str) {
   const regex = /(\d{1,2})(?::| )?(\d{0,2})\s*(am|pm)?/i;
   const match = str.match(regex);
@@ -44,21 +44,14 @@ function parsearHora(str) {
   return { hora, min };
 }
 
+// Formatea objeto hora a string "HH:mm"
 function formatHora({hora, min}) {
   return `${hora.toString().padStart(2,'0')}:${min.toString().padStart(2,'0')}`;
 }
 
-// --- Función para comparar la hora actual con la programada ---
-// Recibe 2 strings "HH:mm"
-function esHoraIgual(hora1, hora2) {
-  return hora1 === hora2;
-}
-
-// Función para saber si hora actual está entre abrir y cerrar
-// Ambas en formato "HH:mm", evalúa rango considerando paso a medianoche
+// Comprueba si horaActual está dentro del rango abrir-cerrar considerando cruce medianoche
 function estaEnRango(horaActual, abrir, cerrar) {
   if (!abrir || !cerrar) return false;
-  // Convertir a minutos totales para comparar fácilmente
   const [hA, mA] = horaActual.split(':').map(Number);
   const [hAbrir, mAbrir] = abrir.split(':').map(Number);
   const [hCerrar, mCerrar] = cerrar.split(':').map(Number);
@@ -70,15 +63,15 @@ function estaEnRango(horaActual, abrir, cerrar) {
   if (totalAbrir <= totalCerrar) {
     return totalA >= totalAbrir && totalA < totalCerrar;
   } else {
-    // Rango que pasa la medianoche (ej: abrir 22:00 cerrar 06:00)
+    // Rango que cruza medianoche
     return totalA >= totalAbrir || totalA < totalCerrar;
   }
 }
 
-// --- Estado interno para evitar mensajes repetidos ---
+// Estado para evitar mensajes repetidos por grupo
 const estadoGrupo = {}; // { chatId: 'abierto'|'cerrado' }
 
-// --- Función principal del handler del comando .programargrupo ---
+// --- Handler del comando .programargrupo ---
 const handler = async (msg, { conn, command, args }) => {
   const rawID = conn.user?.id || '';
   const botNumber = rawID.split(':')[0].replace(/[^0-9]/g, '');
@@ -105,14 +98,16 @@ const handler = async (msg, { conn, command, args }) => {
 
   const text = args.join(' ').toLowerCase();
 
-  // Comando para cambiar zona: .programargrupo zona Mexico
+  // Cambiar zona horaria: .programargrupo zona Mexico
   if (text.startsWith('zona ')) {
     const zonaInput = text.slice(5).trim();
+    // Normaliza para aceptar "mexico" sin tilde, etc.
     const zonaKey = zonaInput.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     const zonaIana = zonasSoportadas[zonaKey] || (zonaInput.startsWith('america/') ? zonaInput : null);
+
     if (!zonaIana) {
       return await conn.sendMessage(chatId, {
-        text: '❌ Zona no soportada. Usa: México, Bogota, Lima, Argentina, Venezuela o usa nombre IANA válido.'
+        text: '❌ Zona no soportada. Usa: México, Bogota, Lima, Argentina, Venezuela o nombre IANA válido.'
       }, { quoted: msg });
     }
     progData[chatId] = progData[chatId] || {};
@@ -121,7 +116,7 @@ const handler = async (msg, { conn, command, args }) => {
     return await conn.sendMessage(chatId, { text: `🌎 Zona horaria configurada a ${zonaIana}` }, { quoted: msg });
   }
 
-  // Parsear comandos abrir y cerrar en cualquier orden
+  // Parsear abrir y cerrar en cualquier orden
   const regexAbrir = /abrir\s+([0-9: ]+(?:am|pm)?)/i;
   const regexCerrar = /cerrar\s+([0-9: ]+(?:am|pm)?)/i;
 
@@ -153,8 +148,6 @@ const handler = async (msg, { conn, command, args }) => {
 
   if (abrirHora) progData[chatId].abrir = formatHora(abrirHora);
   if (cerrarHora) progData[chatId].cerrar = formatHora(cerrarHora);
-
-  // Si no hay zona configurada, poner una por defecto (México)
   if (!progData[chatId].zona) progData[chatId].zona = zonasSoportadas['mexico'];
 
   guardarProgramacion(progData);
@@ -169,20 +162,16 @@ const handler = async (msg, { conn, command, args }) => {
 
 handler.command = /^programargrupo$/i;
 
-// --- FUNCION PARA VERIFICAR Y APLICAR ESTADO DE CIERRE / APERTURA ---
+// --- Función para revisar el estado de cada grupo y aplicar apertura/cierre --- 
 
 async function revisarEstados(conn) {
   let progData = await leerProgramacion();
-  const chatIds = Object.keys(progData);
-
-  for (const chatId of chatIds) {
+  for (const chatId of Object.keys(progData)) {
     const config = progData[chatId];
     if (!config) continue;
-
     const { abrir, cerrar, zona } = config;
     if (!abrir && !cerrar) continue;
 
-    // Obtener hora actual en la zona configurada
     let horaAhora;
     try {
       horaAhora = new Date().toLocaleString('en-US', { timeZone: zona });
@@ -192,48 +181,39 @@ async function revisarEstados(conn) {
     const d = new Date(horaAhora);
     const horaStr = `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
 
-    // Evaluar si el grupo debe estar abierto o cerrado
-    // Abierto si está dentro del rango [abrir, cerrar), cerrado si no.
     const abierto = estaEnRango(horaStr, abrir, cerrar);
 
-    // Revisar estado previo para evitar repetir mensajes
     if (estadoGrupo[chatId] === undefined) estadoGrupo[chatId] = abierto ? 'abierto' : 'cerrado';
 
     if (abierto && estadoGrupo[chatId] !== 'abierto') {
-      // Abrir grupo: permitir enviar mensajes
       try {
-        await conn.groupSettingChange(chatId, 'not_announcement'); // Permite hablar
+        await conn.groupSettingChange(chatId, 'not_announcement'); // Permitir hablar a todos
         await conn.sendMessage(chatId, { text: '✅ El grupo se ha *ABIERTO* según programación.' });
         estadoGrupo[chatId] = 'abierto';
       } catch (e) {
         console.error(`Error abriendo grupo ${chatId}:`, e);
       }
     } else if (!abierto && estadoGrupo[chatId] !== 'cerrado') {
-      // Cerrar grupo: solo admins pueden hablar
       try {
-        await conn.groupSettingChange(chatId, 'announcement'); // Solo admins hablan
+        await conn.groupSettingChange(chatId, 'announcement'); // Sólo admins hablan
         await conn.sendMessage(chatId, { text: '⛔ El grupo se ha *CERRADO* según programación.' });
         estadoGrupo[chatId] = 'cerrado';
       } catch (e) {
         console.error(`Error cerrando grupo ${chatId}:`, e);
       }
     }
-    // Si el estado no cambió, no hacer nada para evitar spam.
   }
 }
 
-// --- INICIAR INTERVALO DE VERIFICACION ---
-// Debe llamarse después de cargar o iniciar el bot, con el objeto `conn` válido
+// --- Función para iniciar el verificador automático ---
 
 function iniciarVerificador(conn) {
-  // Ejecutar cada minuto
   setInterval(() => {
     revisarEstados(conn).catch(err => console.error('Error en verificar estados:', err));
-  }, 60 * 1000);
+  }, 60 * 1000); // Cada minuto
 
-  // Opcional: ejecutar inmediatamente una vez al iniciar
+  // Ejecutar una vez al iniciar
   revisarEstados(conn).catch(err => console.error('Error inicial en verificar estados:', err));
 }
 
-// Exportar handler y función para iniciar verificador
 export { handler, iniciarVerificador };
