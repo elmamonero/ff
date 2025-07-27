@@ -1,9 +1,9 @@
 import fs from "fs";
 import path from "path";
 
-const emojisPath = path.resolve("./emojis.js");
+const emojisPath = path.resolve("./emojigrupo.js");
 
-async function leerEmojis() {
+async function leerEmojisGrupo() {
   try {
     const datos = await import(emojisPath + "?update=" + Date.now());
     return datos.default || {};
@@ -12,7 +12,7 @@ async function leerEmojis() {
   }
 }
 
-function guardarEmojis(data) {
+function guardarEmojisGrupo(data) {
   const contenido = "export default " + JSON.stringify(data, null, 2) + ";\n";
   fs.writeFileSync(emojisPath, contenido);
 }
@@ -29,31 +29,36 @@ const handler = async (msg, { conn, args }) => {
     );
   }
 
-  if (!args.length) {
+  // Verificar si el usuario es admin
+  const metadata = await conn.groupMetadata(chatId);
+  const participant = metadata.participants.find(p => p.id === senderJid);
+  const isAdmin = participant?.admin === "admin" || participant?.admin === "superadmin";
+
+  if (!isAdmin) {
     return await conn.sendMessage(
       chatId,
-      { text: "❗️ Por favor, usa el comando seguido del emoji deseado.\nEjemplo: `.setemoji 😎`" },
+      { text: "❌ Solo los administradores pueden cambiar el emoji del grupo." },
       { quoted: msg }
     );
   }
 
-  const emoji = args[0]; // Simplemente toma el primer argumento
+  if (!args.length) {
+    return await conn.sendMessage(
+      chatId,
+      { text: "❗️ Usa el comando seguido del emoji para el grupo. Ejemplo: `.setemoji 😎`" },
+      { quoted: msg }
+    );
+  }
 
-  // Opcional: Validar que sea un emoji (puedes ampliar esta validación si quieres)
-  // Por simplicidad aquí no se valida
+  const emoji = args[0];
 
-  let emojisData = await leerEmojis();
-  if (!emojisData[chatId]) emojisData[chatId] = {};
-  emojisData[chatId][senderJid] = emoji;
+  let datos = await leerEmojisGrupo();
+  datos[chatId] = emoji;
+  guardarEmojisGrupo(datos);
 
-  guardarEmojis(emojisData);
-
-  return await conn.sendMessage(
+  await conn.sendMessage(
     chatId,
-    {
-      text: `✅ Emoji guardado como tu emoji personalizado: ${emoji}`,
-      mentions: [senderJid],
-    },
+    { text: `✅ Emoji del grupo cambiado a: ${emoji}` },
     { quoted: msg }
   );
 };
