@@ -144,6 +144,8 @@ ${readMore}
 ⠞🌿੭‎ Aviso *texto*
 ⠞🌿੭‎ Admins *texto*
 ⠞🌿੭‎ ${usedPrefix}todos *texto*
+⠞🌿੭‎ ${usedPrefix}setemoji *emoji*
+⠞🌿੭‎ ${usedPrefix}resetemoji
 ⠞🌿੭‎ ${usedPrefix}setwelcome *texto*
 ⠞🌿੭‎ ${usedPrefix}setbye *texto*
 ⠞🌿੭‎ ${usedPrefix}setkick *texto*
