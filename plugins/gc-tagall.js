@@ -25,9 +25,7 @@ const handler = async (msg, { conn, args }) => {
   if (!chatId.endsWith("@g.us")) {
     return await conn.sendMessage(
       chatId,
-      {
-        text: "⚠️ *Este comando solo se puede usar en grupos.*"
-      },
+      { text: "⚠️ *Este comando solo se puede usar en grupos.*" },
       { quoted: msg }
     );
   }
@@ -37,8 +35,7 @@ const handler = async (msg, { conn, args }) => {
   const memberCount = participants.length;
 
   const participant = participants.find(p => p.id.includes(senderNum));
-  const isAdmin =
-    participant?.admin === "admin" || participant?.admin === "superadmin";
+  const isAdmin = participant?.admin === "admin" || participant?.admin === "superadmin";
   const isBot = botNumber === senderNum;
 
   if (!isAdmin && !isBot) {
@@ -51,8 +48,8 @@ const handler = async (msg, { conn, args }) => {
     );
   }
 
-  let datos = await leerEmojisGrupo();
-  const emoji = datos[chatId] || "⚡"; // Emoji por defecto si no hay uno guardado
+  // No usamos emoji variable: colocamos el adorno fijo exacto que pediste
+  const mentionAdorno = "യ ׄ⚡˚";
 
   const mentionIds = participants.map((p) => p.id);
   const extraMsg = args.join(" ");
@@ -62,10 +59,10 @@ const handler = async (msg, { conn, args }) => {
       : "*AVISO:* ¡Atención a todos!*";
 
   const mentionList = participants
-  .map((p) => `യ ׄ⚡˚ @${p.id.split("@")[0]}`)
-  .join("\n");
+    .map((p) => `${mentionAdorno} @${p.id.split("@")[0]}`)
+    .join("\n");
 
-const finalMsg = `╭━[ *INVOCACIÓN MASIVA* ]━⬣
+  const finalMsg = `╭━[ *INVOCACIÓN MASIVA* ]━⬣
 ┃🔹 *PANTHEON BOT* ⚡
 ┃👤 *Invocado por:* ${senderTag}
 ┃👥 *Miembros del grupo: ${memberCount}*
