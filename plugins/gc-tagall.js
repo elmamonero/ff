@@ -48,8 +48,8 @@ const handler = async (msg, { conn, args }) => {
     );
   }
 
-  // No usamos emoji variable: colocamos el adorno fijo exacto que pediste
-  const mentionAdorno = "യ ׄ⚡˚";
+  let datos = await leerEmojisGrupo();
+  const emoji = datos[chatId] || "⚡"; // Usa emoji guardado o rayo por defecto
 
   const mentionIds = participants.map((p) => p.id);
   const extraMsg = args.join(" ");
@@ -59,7 +59,7 @@ const handler = async (msg, { conn, args }) => {
       : "*AVISO:* ¡Atención a todos!*";
 
   const mentionList = participants
-    .map((p) => `${mentionAdorno} @${p.id.split("@")[0]}`)
+    .map((p) => `യ ׄ${emoji}˚ @${p.id.split("@")[0]}`)
     .join("\n");
 
   const finalMsg = `╭━[ *INVOCACIÓN MASIVA* ]━⬣

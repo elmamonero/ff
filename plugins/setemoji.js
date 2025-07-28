@@ -29,7 +29,7 @@ const handler = async (msg, { conn, args }) => {
     );
   }
 
-  // Verificar si el usuario es admin
+  // Verificar si es admin
   const metadata = await conn.groupMetadata(chatId);
   const participant = metadata.participants.find(p => p.id === senderJid);
   const isAdmin = participant?.admin === "admin" || participant?.admin === "superadmin";
@@ -45,7 +45,7 @@ const handler = async (msg, { conn, args }) => {
   if (!args.length) {
     return await conn.sendMessage(
       chatId,
-      { text: "❗️ Usa el comando seguido del emoji para el grupo. Ejemplo: `.setemoji 😎`" },
+      { text: "❗️ Por favor, usa el comando seguido del emoji deseado. Ejemplo: `.setemoji ⚡`" },
       { quoted: msg }
     );
   }
