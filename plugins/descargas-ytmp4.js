@@ -2,104 +2,72 @@ import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
 
-const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB límite
-const TEMP_DIR = '/tmp'; // carpeta temporal, cambiar si usas otro sistema
+const handler = async (m, { conn, args }) => {
+if (!args[0]) return m.reply('Por favor, ingresa una URL de un video de YouTube');
+const url = args[0];
 
-// Valida URL de YouTube (básico)
-const isValidYouTubeUrl = (url) =>
-  /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/.test(url);
+if (!/(youtube\.com|youtu\.be)/.test(url))
+return m.reply("⚠️ Ingresa un link válido de YouTube.");
 
-// Limpia nombre para archivo seguro
-const cleanFileName = (name) =>
-  name.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '_');
+try {
+await m.react('🕒');
+// 1. Consultar la API de Vreden para obtener el video
+const { data } = await axios.get(`https://api.vreden.my.id/api/ytmp4?url=${encodeURIComponent(url)}`);
 
-const downloadVideoFile = async (videoUrl, dest) => {
-  const response = await axios.get(videoUrl, {
-    responseType: 'stream',
-    headers: {
-      'User-Agent': 'Mozilla/5.0',
-      Referer: 'https://www.youtube.com',
-    },
-    timeout: 30000,
-  });
+if (!data.result?.download?.status) {
+await m.react('✖️');
+return m.reply("*✖️ Error:* No se pudo obtener el video");
+}
 
-  await new Promise((resolve, reject) => {
-    const writer = fs.createWriteStream(dest);
-    response.data.pipe(writer);
-    writer.on('finish', resolve);
-    writer.on('error', reject);
-  });
+// 2. Extraer los datos relevantes
+const title = data.result.metadata.title || "video";
+const videoUrl = data.result.download.url;
+const fileName = data.result.download.filename || `${title}.mp4`;
+const thumbnail = data.result.metadata.thumbnail || data.result.metadata.image;
 
-  return dest;
+// 3. Descargar el archivo MP4 a directorio temporal
+const dest = path.join('/tmp', `${Date.now()}_${fileName.replace(/[\\/\s]/g, '_')}`);
+const response = await axios.get(videoUrl, {
+headers: {
+'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+'Referer': 'https://youtube.com'
+},
+responseType: 'stream'
+});
+const writer = fs.createWriteStream(dest);
+response.data.pipe(writer);
+
+await new Promise((resolve, reject) => {
+writer.on('finish', resolve);
+writer.on('error', reject);
+});
+
+// 4. Enviar el video al chat
+await conn.sendMessage(m.chat, {
+video: fs.readFileSync(dest),
+mimetype: 'video/mp4',
+fileName,
+contextInfo: {
+externalAdReply: {
+title,
+body: "Descargar MP4 de YouTube",
+thumbnailUrl: thumbnail,
+mediaUrl: url
+}
+}
+}, { quoted: m });
+
+fs.unlinkSync(dest); // Borra temporal al terminar
+
+await m.react('✅');
+} catch (e) {
+console.error('Error al descargar MP4:', e, e.response?.data);
+await m.react('✖️');
+m.reply("⚠️ La descarga ha fallado, posible error en la API o el video es muy pesado.");
+}
 };
 
-let handler = async (m, { conn, args }) => {
-  if (!args[0]) return m.reply('Por favor, proporciona una URL de YouTube.');
-
-  let url = args[0];
-  if (!isValidYouTubeUrl(url)) return m.reply('⚠️ URL inválida de YouTube.');
-
-  const API_KEY = 'sylphy-eab7'; // Usa tu api key aquí
-  const apiEndpoint = `https://api.sylphy.xyz/download/ytmp4?url=${encodeURIComponent(url)}&apikey=${API_KEY}`;
-
-  try {
-    await m.react('🕒');
-
-    // Consultar API Sylphy
-    const { data } = await axios.get(apiEndpoint);
-
-    if (!data || !data.result) {
-      await m.react('✖️');
-      return m.reply('⚠️ No se pudo obtener información del video.');
-    }
-
-    const videoInfo = data.result;
-    const title = videoInfo.title || 'video';
-    const videoUrl = videoInfo.url; // esta API devuelve el link directo al MP4
-    if (!videoUrl) {
-      await m.react('✖️');
-      return m.reply('⚠️ No se encontró URL para descargar el video.');
-    }
-
-    const fileName = cleanFileName(`${title}.mp4`);
-    const destPath = path.join(TEMP_DIR, `${Date.now()}_${fileName}`);
-
-    // Descargar el video temporalmente
-    await downloadVideoFile(videoUrl, destPath);
-
-    // Validar tamaño del archivo
-    const stats = fs.statSync(destPath);
-    if (stats.size > MAX_FILE_SIZE) {
-      fs.unlinkSync(destPath);
-      await m.react('✖️');
-      return m.reply('⚠️ El video es demasiado grande para enviar (más de 100MB).');
-    }
-
-    // Enviar video con stream para ahorro de memoria
-    await conn.sendMessage(m.chat, {
-      video: fs.createReadStream(destPath),
-      mimetype: 'video/mp4',
-      fileName,
-      contextInfo: {
-        externalAdReply: {
-          title,
-          body: 'Descarga vía Sylphy API',
-          mediaUrl: url,
-          thumbnailUrl: videoInfo.thumbnail || null,
-        }
-      }
-    }, { quoted: m });
-
-    fs.unlinkSync(destPath);
-    await m.react('✅');
-  } catch (e) {
-    console.error('Error en handler ytmp4 Sylphy API:', e);
-    await m.react('✖️');
-    m.reply('⚠️ Error al descargar el video o con la API. Intenta con otro enlace.');
-  }
-};
-
-handler.help = ['ytmp4 <url>'];
+handler.help = ['ytmp4'];
 handler.command = ['ytmp4'];
 handler.tags = ['download'];
 
