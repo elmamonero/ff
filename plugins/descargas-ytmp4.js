@@ -12,7 +12,7 @@ return m.reply("⚠️ Ingresa un link válido de YouTube.");
 try {
 await m.react('🕒');
 // 1. Consultar la API de Vreden para obtener el video
-const { data } = await axios.get(`https://api.vreden.my.id/api/ytmp4?url=${encodeURIComponent(url)}`);
+const { data } = await axios.get(`https://api.sylphy.xyz/download/ytmp4?url=${encodeURIComponent(url)}`);
 
 if (!data.result?.download?.status) {
 await m.react('✖️');
