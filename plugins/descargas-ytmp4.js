@@ -5,12 +5,10 @@ import path from 'path';
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
 const TEMP_DIR = '/tmp'; // Cambia según tu entorno
 
-// Extrae y limpia URL de YouTube para evitar parámetros que rompan la API
 function extractYouTubeUrl(url) {
   try {
     const urlObj = new URL(url);
     if (urlObj.hostname.includes('youtu.be')) {
-      // URL corta tipo youtu.be/ID
       return `https://youtu.be/${urlObj.pathname.slice(1)}`;
     } else if (urlObj.hostname.includes('youtube.com')) {
       const v = urlObj.searchParams.get('v');
@@ -125,10 +123,12 @@ let handler = async (m, { conn, args }) => {
       return m.reply('⚠️ El video es demasiado grande para enviar (más de 100MB).');
     }
 
-    console.log('Enviando video al chat...');
+    console.log('Leyendo archivo en buffer para enviar como video...');
+    const fileBuffer = fs.readFileSync(destPath);
 
+    console.log('Enviando video al chat...');
     await conn.sendMessage(m.chat, {
-      video: fs.createReadStream(destPath),
+      video: fileBuffer,
       mimetype: 'video/mp4',
       fileName,
       contextInfo: {
