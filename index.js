@@ -160,7 +160,7 @@ version,
 global.conn = makeWASocket(connectionOptions);
 
 // Importa el handler (ajusta la ruta si es necesario)
-import handlerModule from './handler.js'
+import { handler } from './handler.js'
 
 // Asigna el handler a conn para procesar comandos
 conn.handler = handlerModule.handler.bind(conn)
