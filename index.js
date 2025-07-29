@@ -201,7 +201,6 @@ conn.ev.on('creds.update', () => saveCreds())
 // ... (agrega tus funciones purgeSession, purgeOldFiles, clearTmp, etc. debajo)
 
 // Ejemplo de función clearTmp para limpiar tmp cada cierto tiempo
-async function clearTmp() {
   const tmpDir = join(__dirname, 'tmp')
   if (!existsSync(tmpDir)) return
   const filenames = readdirSync(tmpDir)
