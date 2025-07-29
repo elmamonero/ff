@@ -441,7 +441,6 @@ const s = global.support = {ffmpeg, ffprobe, ffmpegWebp, convert, magick, gm, fi
 Object.freeze(global.support);
 }
 
-function clearTmp() {
 const tmpDir = join(__dirname, 'tmp')
 const filenames = readdirSync(tmpDir)
 filenames.forEach(file => {
