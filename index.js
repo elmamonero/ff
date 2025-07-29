@@ -159,6 +159,30 @@ version,
 
 global.conn = makeWASocket(connectionOptions);
 
+// Importa el handler (ajusta la ruta si es necesario)
+import handlerModule from './handler.js'
+
+// Asigna el handler a conn para procesar comandos
+conn.handler = handlerModule.handler.bind(conn)
+
+// Escuchar nuevos mensajes y procesarlos con el handler
+conn.ev.on('messages.upsert', async (m) => {
+  const messages = m.messages || []
+  for (const msg of messages) {
+    if (!msg.key.fromMe && msg.message) {
+      try {
+        await conn.handler(msg, { conn })
+      } catch (e) {
+        console.error('Error en handler:', e)
+      }
+
+      // Si tienes funciones adicionales que procesen mensajes, puedes llamarlas aquí también
+      // Ejemplo: await contarMensaje(msg, conn)
+    }
+  }
+})
+
+
 import { contarMensaje } from './plugins/contador.js';
 
 conn.ev.on('messages.upsert', async (m) => {
