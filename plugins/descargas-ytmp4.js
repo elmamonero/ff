@@ -2,10 +2,9 @@ import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
 
-const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB límite (Whatsapp limitación habitual)
-const TEMP_DIR = '/tmp'; // Ajusta según tu sistema operativo
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
+const TEMP_DIR = '/tmp'; // Cambia si usas otro SO
 
-// Validar URL YouTube básica
 const isValidYouTubeUrl = (url) =>
   /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/.test(url);
 
@@ -35,7 +34,8 @@ async function downloadVideoFile(videoUrl, dest) {
 let handler = async (m, { conn, args }) => {
   if (!args[0]) return m.reply('Por favor, proporciona una URL de YouTube.');
 
-  const url = args[0];
+  // Limpieza básica URL para evitar parámetros problemáticos
+  let url = args[0].split('?')[0];
   if (!isValidYouTubeUrl(url)) return m.reply('⚠️ URL inválida de YouTube.');
 
   const API_KEY = 'sylphy-eab7';
@@ -97,7 +97,6 @@ let handler = async (m, { conn, args }) => {
 
     await m.react('✅');
   } catch (error) {
-    console.error('Error en handler ytmp4 Sylphy API:', error);
     await m.react('✖️');
     m.reply('⚠️ Error al descargar el video o en la API. Intenta con otro enlace o más tarde.');
   }
