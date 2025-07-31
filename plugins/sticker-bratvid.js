@@ -11,7 +11,7 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
   m.react('⏳')
 
   try {
-    let url = `https://api.nekorinn.my.id/maker/brat-v2?text=${encodeURIComponent(text)}`
+    let url = `https://brat.siputzx.my.id/gif?text=${encodeURIComponent(text)}`
     let res = await axios.get(url, { responseType: 'arraybuffer' })
 
     let contentType = res.headers['content-type']
