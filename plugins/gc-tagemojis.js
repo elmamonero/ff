@@ -1,7 +1,7 @@
-import fs from 'fs';
-import path from 'path';
+import fs from "fs";
+import path from "path";
 
-const emojiFile = path.resolve('./emojigrupo.js'); // Archivo .js
+const emojisPath = path.resolve("./emojigrupo.js");
 
 const emojisTag = [
   '😀','😃','😄','😁','😆','😅','😂','🤣','😊','😉','😍','🥰','😘','😗','😙','😚','😋','😜','🤪',
@@ -13,63 +13,77 @@ const emojisTag = [
   '👍','👎','✊','👊','🤛','🤜','👏','🙌','👐','🤲','🤝','🙏',
 ];
 
-// Leer archivo .js con import dinámico
-async function leerArchivoEmojis() {
+async function leerEmojisGrupo() {
   try {
-    const datos = await import(emojiFile + "?update=" + Date.now());
+    const datos = await import(emojisPath + "?update=" + Date.now());
     return datos.default || {};
   } catch {
     return {};
   }
 }
 
-// Guardar archivo .js con export default
-function guardarArchivoEmojis(data) {
-  const contenido = "export default " + JSON.stringify(data, null, 2) + ";";
-  fs.writeFileSync(emojiFile, contenido, 'utf-8');
+function guardarEmojisGrupo(data) {
+  const contenido = "export default " + JSON.stringify(data, null, 2) + ";\n";
+  fs.writeFileSync(emojisPath, contenido);
 }
 
 function randomEmoji() {
   return emojisTag[Math.floor(Math.random() * emojisTag.length)];
 }
 
-const tagemojisHandler = async (m, { conn }) => {
-  if (!m.isGroup) {
-    await conn.sendMessage(m.chat, { text: "⚠️ Este comando solo funciona en grupos." }, { quoted: m });
-    return;
+const handler = async (msg, { conn }) => {
+  const chatId = msg.key.remoteJid;
+
+  if (!chatId.endsWith("@g.us")) {
+    return await conn.sendMessage(
+      chatId,
+      { text: "⚠️ Este comando solo funciona en grupos." },
+      { quoted: msg }
+    );
   }
 
-  const chatId = m.chat;
   const metadata = await conn.groupMetadata(chatId);
   const participantes = metadata.participants.map(p => p.id);
-
   if (!participantes.length) {
-    await conn.sendMessage(chatId, { text: "No se encontraron participantes para asignar emojis." }, { quoted: m });
-    return;
+    return await conn.sendMessage(
+      chatId,
+      { text: "No se encontraron participantes para asignar emojis." },
+      { quoted: msg }
+    );
   }
 
-  const emojisGuardados = await leerArchivoEmojis();
+  // Solo admins pueden usarlo
+  const senderJid = msg.key.participant || msg.key.remoteJid;
+  const sender = metadata.participants.find(p => p.id === senderJid);
+  const isAdmin = sender?.admin === "admin" || sender?.admin === "superadmin";
+  if (!isAdmin) {
+    return await conn.sendMessage(
+      chatId,
+      { text: "❌ Solo administradores pueden usar este comando." },
+      { quoted: msg }
+    );
+  }
 
-  if (typeof emojisGuardados[chatId] !== 'object' || emojisGuardados[chatId] === null) {
-    emojisGuardados[chatId] = {};
+  const datos = await leerEmojisGrupo();
+  if (!datos[chatId] || typeof datos[chatId] !== "object") {
+    datos[chatId] = { default: "⚡", users: {} };
+  } else if (!datos[chatId].users || typeof datos[chatId].users !== "object") {
+    datos[chatId].users = {};
   }
 
   participantes.forEach(userId => {
-    emojisGuardados[chatId][userId] = randomEmoji();
+    datos[chatId].users[userId] = randomEmoji();
   });
 
-  guardarArchivoEmojis(emojisGuardados);
+  guardarEmojisGrupo(datos);
 
   await conn.sendMessage(
     chatId,
-    { text: `✅ Emojis actualizados para cada participante y se usarán en el próximo comando .todos` },
-    { quoted: m }
+    { text: "✅ Emojis asignados aleatoriamente a cada participante. Se usarán en el próximo comando de etiqueta masiva." },
+    { quoted: msg }
   );
 };
 
-tagemojisHandler.help = ['tagemojis'];
-tagemojisHandler.tags = ['group'];
-tagemojisHandler.command = /^tagemojis$/i;
-tagemojisHandler.group = true;
+handler.command = /^tagemojis$/i;
 
-export default tagemojisHandler;
+export default handler;
