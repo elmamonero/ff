@@ -1,90 +1,75 @@
-import fs from "fs";
-import path from "path";
+const emojisTag = [
+  '😀','😃','😄','😁','😆','😅','😂','🤣','😊','😉',
+  '😍','🥰','😘','😗','😙','😚','😋','😜','🤪','😝',
+  '🤑','🤗','🤭','🤫','🤔','🤐','😶','😏','😒','🙄',
+  '😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕',
+  '🤢','🤮','🥵','🥶','😵','🤯','🤠','🥳','😎','🤓',
+  '🧐','😕','😟','🙁','☹️','😮','😯','😲','😳','🥺',
+  '😦','😧','😨','😰','😥','😢','😭','😱','😖','😣',
+  '😞','😓','😩','😫','🥱','😤','😡','😠','🤬','😈',
+  '👿','💀','☠️','🤡','👹','👺','👻','👽','👾','🤖',
+  '💩','👋','🤚','🖐','✋','🖖','👌','🤏','✌️','🤞',
+  '🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','👍',
+  '👎','✊','👊','🤛','🤜','👏','🙌','👐','🤲','🤝','🙏',
+];
 
-const emojisPath = path.resolve("./emojigrupo.json");
-
-async function leerEmojisGrupo() {
-  try {
-    const datosRaw = await fs.promises.readFile(emojisPath, 'utf-8');
-    return JSON.parse(datosRaw);
-  } catch {
-    return {};
-  }
+// Función para obtener emoji aleatorio
+function randomEmoji() {
+  return emojisTag[Math.floor(Math.random() * emojisTag.length)];
 }
 
-const todosHandler = async (msg, { conn, args }) => {
-  const rawID = conn.user?.id || "";
-  const subbotID = rawID.split(":")[0] + "@s.whatsapp.net";
-  const botNumber = rawID.split(":")[0].replace(/[^0-9]/g, "");
+export async function todos4(m, { conn, args }) {
+  if (!m.isGroup)
+    return await conn.sendMessage(m.chat, { text: "❌ Este comando solo funciona en grupos." }, { quoted: m });
 
-  const chatId = msg.key.remoteJid;
-  if (!chatId.endsWith("@g.us")) {
-    return await conn.sendMessage(
-      chatId,
-      { text: "⚠️ *Este comando solo se puede usar en grupos.*" },
-      { quoted: msg }
-    );
-  }
+  const senderNum = (m.sender || '').split('@')[0];
 
-  const metadata = await conn.groupMetadata(chatId);
+  const metadata = await conn.groupMetadata(m.chat);
   const participants = metadata.participants;
-  const memberCount = participants.length;
-
-  const senderJid = msg.key.participant || msg.key.remoteJid;
-  const senderNum = senderJid.replace(/[^0-9]/g, "");
-  const senderTag = `@${senderNum}`;
 
   const participant = participants.find(p => p.id.includes(senderNum));
   const isAdmin = participant?.admin === "admin" || participant?.admin === "superadmin";
-  const isBot = botNumber === senderNum;
+  const botNumber = (conn.user?.id || '').split(":")[0].replace(/[^0-9]/g, "");
+  const isBot = senderNum === botNumber;
 
   if (!isAdmin && !isBot) {
     return await conn.sendMessage(
-      chatId,
-      {
-        text: "❌ Solo los administradores del grupo o el subbot pueden usar este comando."
-      },
-      { quoted: msg }
+      m.chat,
+      { text: "❌ Solo administradores o el bot pueden usar este comando." },
+      { quoted: m }
     );
   }
 
-  const datos = await leerEmojisGrupo();
-  const emoji = datos[chatId] || "⚡"; // Si no hay emoji guardado, se usa esta opción por defecto
+  const memberCount = participants.length;
+  const senderTag = `@${senderNum}`;
 
-  const mentionIds = participants.map(p => p.id);
-  const extraMsg = args.join(" ");
-  const aviso =
-    extraMsg.trim().length > 0
-      ? `*AVISO:* ${extraMsg}`
-      : "*AVISO:* ¡Atención a todos!*";
+  let aviso = args.length ? `*AVISO:* ${args.join(' ')}` : "*AVISO:* ¡Atención a todos!*";
 
   const mentionList = participants
-    .map(p => `${emoji} ⇝ @${p.id.split("@")[0]}`)
+    .map(p => `${randomEmoji()} @${p.id.split("@")[0]}`)
     .join("\n");
 
-  const finalMsg = `╭━[ *INVOCACIÓN MASIVA* ]━⬣
-┃🔹 *PANTHEON BOT* ⚡
-┃👤 *Invocado por:* ${senderTag}
-┃👥 *Miembros del grupo: ${memberCount}*
+  const mentionIds = participants.map(p => p.id);
+
+  // Texto EXACTO que pusiste por ti, respetando saltos, símbolos y formato
+  const finalMsg = `╭━[ INVOCACIÓN MASIVA ]━⬣
+┃🔱 KILLUA-BOT ⚡
+┃👤 Invocado por: ${senderTag}
+┃👥 Miembros del grupo: ${memberCount}
 ╰━━━━━━━⋆★⋆━━━━━━━⬣
 
-${aviso}
-
-📲 *Etiquetando a todos los miembros...*
-
+┌──⭓ Mencionando a todos...
 ${mentionList}
-╰─[ *Pantheon Bot WhatsApp* ⚡ ]─`;
+└───────⭓`;
 
   await conn.sendMessage(
-    chatId,
-    {
-      text: finalMsg,
-      mentions: mentionIds
-    },
-    { quoted: msg }
+    m.chat,
+    { text: finalMsg, mentions: mentionIds },
+    { quoted: m }
   );
-};
+}
 
-todosHandler.command = /^(todos4)$/i;
-
-export default todosHandler;
+todos4.command = /^todos4$/i;
+todos4.group = true;
+todos4.tags = ['group'];
+todos4.help = ['todos4'];
