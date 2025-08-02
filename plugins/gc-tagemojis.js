@@ -47,7 +47,11 @@ const tagemojisHandler = async (m, { conn }) => {
   }
 
   const emojisGuardados = leerArchivoEmojis();
-  emojisGuardados[chatId] = emojisGuardados[chatId] || {};
+
+  // Asegurarse que sea un objeto y no un string
+  if (typeof emojisGuardados[chatId] !== 'object' || emojisGuardados[chatId] === null) {
+    emojisGuardados[chatId] = {};
+  }
 
   participantes.forEach(userId => {
     emojisGuardados[chatId][userId] = randomEmoji();
