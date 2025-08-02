@@ -32,15 +32,21 @@ function randomEmoji() {
 }
 
 const tagemojisHandler = async (m, { conn }) => {
-  if (!m.isGroup) return await conn.sendMessage(m.chat, { text: "⚠️ Este comando solo funciona en grupos." }, { quoted: m });
+  if (!m.isGroup) {
+    await conn.sendMessage(m.chat, { text: "⚠️ Este comando solo funciona en grupos." }, { quoted: m });
+    return;
+  }
 
   const chatId = m.chat;
-  const participantes = Object.keys(conn.chats[chatId]?.presences || {});
+  const metadata = await conn.groupMetadata(chatId);
+  const participantes = metadata.participants.map(p => p.id);
 
-  if (!participantes.length) return await conn.sendMessage(chatId, { text: "No se encontraron participantes para asignar emojis." }, { quoted: m });
+  if (!participantes.length) {
+    await conn.sendMessage(chatId, { text: "No se encontraron participantes para asignar emojis." }, { quoted: m });
+    return;
+  }
 
   const emojisGuardados = leerArchivoEmojis();
-
   emojisGuardados[chatId] = emojisGuardados[chatId] || {};
 
   participantes.forEach(userId => {
@@ -51,9 +57,7 @@ const tagemojisHandler = async (m, { conn }) => {
 
   await conn.sendMessage(
     chatId,
-    {
-      text: `✅ Emojis actualizados para cada participante y se usarán en el próximo comando .todos`
-    },
+    { text: `✅ Emojis actualizados para cada participante y se usarán en el próximo comando .todos` },
     { quoted: m }
   );
 };
