@@ -8,9 +8,9 @@ const dev = "RukiXzy & El Bicho Man";
 
 function formatViews(views) {
   if (!views) return "No disponible";
-  if (views >= 1_000_000_000) return `${(views / 1_000_000_000).toFixed(1)}B (${views.toLocaleString()})`;
-  if (views >= 1_000_000) return `${(views / 1_000_000).toFixed(1)}M (${views.toLocaleString()})`;
-  if (views >= 1_000) return `${(views / 1_000).toFixed(1)}k (${views.toLocaleString()})`;
+  if (views >= 1000000000) return (views / 1000000000).toFixed(1) + "B (" + views.toLocaleString() + ")";
+  if (views >= 1000000) return (views / 1000000).toFixed(1) + "M (" + views.toLocaleString() + ")";
+  if (views >= 1000) return (views / 1000).toFixed(1) + "k (" + views.toLocaleString() + ")";
   return views.toString();
 }
 
@@ -20,7 +20,7 @@ const handler = async (m, { conn, text = '', usedPrefix, command }) => {
       return conn.reply(m.chat, `❀ Por favor, ingresa el nombre o enlace del video de YouTube que quieres descargar.`, m);
     }
 
-    // Obtener videoId o usar texto para búsqueda
+    // Obtener videoId de la URL o usar texto para buscar
     const videoIdMatch = text.match(youtubeRegexID);
     const searchQuery = videoIdMatch ? `https://youtu.be/${videoIdMatch[1]}` : text;
     const searchResult = await yts(searchQuery);
@@ -29,25 +29,31 @@ const handler = async (m, { conn, text = '', usedPrefix, command }) => {
     if (videoIdMatch) {
       videoInfo = searchResult.all.find(v => v.videoId === videoIdMatch[1]) || searchResult.videos.find(v => v.videoId === videoIdMatch[1]);
     }
-    videoInfo = videoInfo || searchResult.all?.[0] || searchResult.videos?.[0];
+
+    videoInfo = videoInfo || searchResult.all && searchResult.all[0] || searchResult.videos && searchResult.videos[0];
 
     if (!videoInfo) {
       return m.reply('✧ No se encontraron resultados para tu búsqueda.', m);
     }
 
-    let { title, thumbnail, timestamp, views, ago, url, author } = videoInfo;
-    title ||= 'No encontrado';
-    thumbnail ||= '';
-    timestamp ||= 'No disponible';
-    views ||= 0;
-    ago ||= 'No disponible';
-    url ||= 'No disponible';
-    author ||= {};
+    // Asignaciones evitando operador ||= (compatible versiones antiguas)
+    let title = videoInfo.title ? videoInfo.title : 'No encontrado';
+    let thumbnail = videoInfo.thumbnail ? videoInfo.thumbnail : '';
+    let timestamp = videoInfo.timestamp ? videoInfo.timestamp : 'No disponible';
+    let views = videoInfo.views ? videoInfo.views : 0;
+    let ago = videoInfo.ago ? videoInfo.ago : 'No disponible';
+    let url = videoInfo.url ? videoInfo.url : 'No disponible';
+    let author = videoInfo.author ? videoInfo.author : {};
 
     const vistas = formatViews(Number(views));
-    const canal = author.name || 'Desconocido';
+    const canal = author.name ? author.name : 'Desconocido';
 
-    const thumb = thumbnail ? (await conn.getFile?.(thumbnail))?.data : null;
+    // Obtener la miniatura (si tu bot lo soporta)
+    let thumb = null;
+    if (thumbnail && conn.getFile) {
+      const fileInfo = await conn.getFile(thumbnail);
+      thumb = fileInfo?.data || null;
+    }
 
     const infoMessage =
 `「✦」Descargando *<${title}>*
@@ -75,21 +81,26 @@ const handler = async (m, { conn, text = '', usedPrefix, command }) => {
 
     await conn.reply(m.chat, infoMessage, m, context);
 
-    // Aquí se usa la API key que me diste
-    const apikey = "sylphy-eab7";
+    const apikey = "sylphy-eab7"; // Tu API key oficial
     const apiUrl = `https://api.sylphy.xyz/download/ytmp4?url=${encodeURIComponent(url)}&apikey=${apikey}`;
 
     const response = await fetch(apiUrl);
-    if (!response.ok) throw new Error('Error en la solicitud a la API Sylphy');
+    if (!response.ok) throw new Error('Error en la solicitud a la API Sylphy.');
 
     const json = await response.json();
 
-    if (!json.res?.url) {
+    if (!json.res || !json.res.url) {
       return conn.reply(m.chat, '✦ No se pudo obtener el enlace del video para descargar.', m);
     }
 
-    // Enviar video mp4
-    await conn.sendFile(m.chat, json.res.url, `${json.res.title || title}.mp4`, title, m);
+    // Enviar el video mp4
+    await conn.sendFile(
+      m.chat,
+      json.res.url,
+      `${json.res.title || title}.mp4`,
+      title,
+      m
+    );
 
   } catch (error) {
     console.error(error);
