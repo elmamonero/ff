@@ -3,11 +3,11 @@ import yts from 'yt-search';
 
 const youtubeRegexID = /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([a-zA-Z0-9_-]{11})/;
 
-const botname = "Pantheon Bot"; // Pon aquí el nombre de tu bot
-const dev = "RukiXzy & El Bicho Man"; // Cambia según autor
+const botname = "Pantheon Bot";
+const dev = "RukiXzy & El Bicho Man";
 
 function formatViews(views) {
-  if (views === undefined) return "No disponible";
+  if (!views) return "No disponible";
   if (views >= 1_000_000_000) return `${(views / 1_000_000_000).toFixed(1)}B (${views.toLocaleString()})`;
   if (views >= 1_000_000) return `${(views / 1_000_000).toFixed(1)}M (${views.toLocaleString()})`;
   if (views >= 1_000) return `${(views / 1_000).toFixed(1)}k (${views.toLocaleString()})`;
@@ -20,15 +20,14 @@ const handler = async (m, { conn, text = '', usedPrefix, command }) => {
       return conn.reply(m.chat, `❀ Por favor, ingresa el nombre o enlace del video de YouTube que quieres descargar.`, m);
     }
 
-    // Buscar en YouTube el video por ID o texto
-    let videoIdToFind = text.match(youtubeRegexID) || null;
-    let searchQuery = videoIdToFind === null ? text : 'https://youtu.be/' + videoIdToFind[1];
-    let searchResult = await yts(searchQuery);
+    // Obtener videoId o usar texto para búsqueda
+    const videoIdMatch = text.match(youtubeRegexID);
+    const searchQuery = videoIdMatch ? `https://youtu.be/${videoIdMatch[1]}` : text;
+    const searchResult = await yts(searchQuery);
 
     let videoInfo;
-    if (videoIdToFind) {
-      const videoId = videoIdToFind[1];
-      videoInfo = searchResult.all.find(item => item.videoId === videoId) || searchResult.videos.find(item => item.videoId === videoId);
+    if (videoIdMatch) {
+      videoInfo = searchResult.all.find(v => v.videoId === videoIdMatch[1]) || searchResult.videos.find(v => v.videoId === videoIdMatch[1]);
     }
     videoInfo = videoInfo || searchResult.all?.[0] || searchResult.videos?.[0];
 
@@ -36,24 +35,21 @@ const handler = async (m, { conn, text = '', usedPrefix, command }) => {
       return m.reply('✧ No se encontraron resultados para tu búsqueda.', m);
     }
 
-    // Extraer datos
     let { title, thumbnail, timestamp, views, ago, url, author } = videoInfo;
-    title = title || 'No encontrado';
-    thumbnail = thumbnail || '';
-    timestamp = timestamp || 'No disponible';
-    views = views || 'No disponible';
-    ago = ago || 'No disponible';
-    url = url || 'No disponible';
-    author = author || {};
+    title ||= 'No encontrado';
+    thumbnail ||= '';
+    timestamp ||= 'No disponible';
+    views ||= 0;
+    ago ||= 'No disponible';
+    url ||= 'No disponible';
+    author ||= {};
 
-    const vistas = formatViews(Number(views) || 0);
+    const vistas = formatViews(Number(views));
     const canal = author.name || 'Desconocido';
 
-    // Obtener la miniatura para contexto (si tu bot tiene método para ello)
     const thumb = thumbnail ? (await conn.getFile?.(thumbnail))?.data : null;
 
-    // Mensaje informativo con link visible
-    const infoMessage = 
+    const infoMessage =
 `「✦」Descargando *<${title}>*
 
 > 📺 Canal ✦ *${canal}*
@@ -62,7 +58,7 @@ const handler = async (m, { conn, text = '', usedPrefix, command }) => {
 > 📆 Publicado ✦ *${ago}*
 > 🖇️ Link ✦ ${url}`;
 
-    const JT = {
+    const context = {
       contextInfo: {
         externalAdReply: {
           title: botname,
@@ -77,24 +73,27 @@ const handler = async (m, { conn, text = '', usedPrefix, command }) => {
       },
     };
 
-    // Enviar info al chat
-    await conn.reply(m.chat, infoMessage, m, JT);
+    await conn.reply(m.chat, infoMessage, m, context);
 
-    // Buscar URL del video mp4 con API Neoxr
-    const apiUrl = `https://api.neoxr.eu/api/youtube?url=${encodeURIComponent(url)}&type=video&quality=480p&apikey=GataDios`;
+    // Aquí se usa la API key que me diste
+    const apikey = "sylphy-eab7";
+    const apiUrl = `https://api.sylphy.xyz/download/ytmp4?url=${encodeURIComponent(url)}&apikey=${apikey}`;
+
     const response = await fetch(apiUrl);
+    if (!response.ok) throw new Error('Error en la solicitud a la API Sylphy');
+
     const json = await response.json();
 
-    if (!json.data?.url) {
+    if (!json.res?.url) {
       return conn.reply(m.chat, '✦ No se pudo obtener el enlace del video para descargar.', m);
     }
 
     // Enviar video mp4
-    await conn.sendFile(m.chat, json.data.url, `${json.title || title}.mp4`, title, m);
+    await conn.sendFile(m.chat, json.res.url, `${json.res.title || title}.mp4`, title, m);
 
   } catch (error) {
     console.error(error);
-    return m.reply(`✦ Ocurrió un error al descargar el video:\n${error.message || error}`, m);
+    await m.reply(`✦ Ocurrió un error al descargar el video:\n${error.message || error}`, m);
   }
 };
 
