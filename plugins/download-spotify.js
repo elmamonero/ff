@@ -2,26 +2,14 @@ import fetch from 'node-fetch';
 
 const handler = async (m, { conn, text, usedPrefix, command }) => {
   if (!text) {
-    await m.reply(
-      `*📀 Por favor, ingresa el enlace o nombre de una canción de Spotify.*\n> *\`Ejemplo:\`* ${usedPrefix + command} Ponte bonita - Cris mj`
-    );
+    await m.reply(`*📀 Por favor, ingresa el enlace o nombre de una canción de Spotify.*\n> *\`Ejemplo:\`* ${usedPrefix + command} Ponte bonita - Cris mj`);
     return;
   }
 
   await m.react('⌛');
 
   try {
-    const response = await fetch(
-      `https://api.nekorinn.my.id/downloader/spotifyplay?q=${encodeURIComponent(text)}`
-    );
-
-    const contentType = response.headers.get('content-type') || '';
-
-    if (!contentType.includes('application/json')) {
-      const textResponse = await response.text();
-      throw new Error(`Respuesta inesperada de la API, no es JSON:\n${textResponse.substring(0, 300)}`);
-    }
-
+    const response = await fetch(`https://api.nekorinn.my.id/downloader/spotifyplay?q=${encodeURIComponent(text)}`);
     const data = await response.json();
 
     if (!data.result || !data.result.downloadUrl) {
@@ -30,21 +18,10 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
 
     console.log('URL de audio obtenida:', data.result.downloadUrl);
 
-    // Validar URL correcta
-    if (typeof data.result.downloadUrl !== 'string' || !data.result.downloadUrl.startsWith('http')) {
-      throw new Error('La URL de audio no es válida.');
-    }
-
-    // Enviar audio directamente desde URL
-    await conn.sendMessage(
-      m.chat,
-      {
-        audio: { url: data.result.downloadUrl },
-        mimetype: 'audio/mpeg',
-        fileName: `${data.result.metadata?.title || 'Spotify'} - Audio.mp3`,
-      },
-      { quoted: m }
-    );
+    await conn.sendMessage(m.chat, {
+      audio: { url: data.result.downloadUrl },
+      mimetype: 'audio/mpeg'
+    }, { quoted: m });
 
     await m.react('✅');
   } catch (e) {
@@ -54,7 +31,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
   }
 };
 
-handler.help = ['spotify <texto>'];
+handler.help = ['spotify *<texto>*'];
 handler.tags = ['descargas'];
 handler.command = ['spotify', 'spotifydl', 'spdl'];
 
