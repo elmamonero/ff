@@ -1,26 +1,27 @@
 import fetch from 'node-fetch';
 
 let handler = async (m, { conn, text }) => {
-  try {
-    if (!text) {
-      return conn.reply(m.chat, '⚠️ Por favor, ingresa un texto para crear el sticker.', m);
-    }
+  if (!text) return conn.reply(m.chat, '⚠️ Por favor, ingresa un texto para crear el sticker.', m);
 
+  try {
     await m.react('🕒');
 
     const url = `https://api.nekorinn.my.id/maker/brat-v2?text=${encodeURIComponent(text)}`;
-    const response = await fetch(url);
+    const res = await fetch(url);
 
-    if (!response.ok) throw new Error('No se pudo descargar el sticker.');
+    if (!res.ok) throw new Error('No se pudo descargar el sticker.');
 
-    const buffer = await response.buffer();
+    const buffer = await res.buffer();
 
-    // Enviar sticker visual
+    // Validar longitud mínima del buffer para evitar archivos vacíos
+    if (buffer.length < 1000) throw new Error('Archivo recibido muy pequeño o corrupto.');
+
+    // Enviar el sticker visual
     await conn.sendMessage(m.chat, {
       sticker: buffer
     }, { quoted: m });
 
-    // Enviar sticker como archivo para descarga
+    // También enviar como documento para descarga
     await conn.sendMessage(m.chat, {
       document: buffer,
       fileName: `${text}.webp`,
@@ -32,7 +33,7 @@ let handler = async (m, { conn, text }) => {
   } catch (e) {
     console.error(e);
     await m.react('✖️');
-    m.reply('Error al generar el sticker.');
+    m.reply(typeof e === 'string' ? e : 'Error al generar o enviar el sticker.');
   }
 };
 
