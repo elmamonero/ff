@@ -17,7 +17,8 @@ function formatViews(views) {
 const handler = async (m, { conn, text = '', usedPrefix, command }) => {
   try {
     if (!text.trim()) {
-      return conn.reply(m.chat, `❀ Por favor, ingresa el nombre o enlace del video de YouTube que quieres descargar.`, m);
+      await conn.reply(m.chat, `❀ Por favor, ingresa el nombre o enlace del video de YouTube que quieres descargar.`, m);
+      return;
     }
 
     // Obtener videoId de la URL o usar texto para buscar
@@ -30,13 +31,14 @@ const handler = async (m, { conn, text = '', usedPrefix, command }) => {
       videoInfo = searchResult.all.find(v => v.videoId === videoIdMatch[1]) || searchResult.videos.find(v => v.videoId === videoIdMatch[1]);
     }
 
-    videoInfo = videoInfo || searchResult.all && searchResult.all[0] || searchResult.videos && searchResult.videos[0];
+    videoInfo = videoInfo || (searchResult.all && searchResult.all[0]) || (searchResult.videos && searchResult.videos[0]);
 
     if (!videoInfo) {
-      return m.reply('✧ No se encontraron resultados para tu búsqueda.', m);
+      await m.reply('✧ No se encontraron resultados para tu búsqueda.', m);
+      return;
     }
 
-    // Asignaciones evitando operador ||= (compatible versiones antiguas)
+    // Asignaciones sin operador ||= para compatibilidad
     let title = videoInfo.title ? videoInfo.title : 'No encontrado';
     let thumbnail = videoInfo.thumbnail ? videoInfo.thumbnail : '';
     let timestamp = videoInfo.timestamp ? videoInfo.timestamp : 'No disponible';
@@ -80,17 +82,23 @@ const handler = async (m, { conn, text = '', usedPrefix, command }) => {
     };
 
     await conn.reply(m.chat, infoMessage, m, context);
+    // Detener ejecución para evitar envío duplicado
+    // continúa solo después del await conn.reply...
 
     const apikey = "sylphy-eab7"; // Tu API key oficial
     const apiUrl = `https://api.sylphy.xyz/download/ytmp4?url=${encodeURIComponent(url)}&apikey=${apikey}`;
 
     const response = await fetch(apiUrl);
-    if (!response.ok) throw new Error('Error en la solicitud a la API Sylphy.');
+    if (!response.ok) {
+      await conn.reply(m.chat, '✦ Error en la solicitud a la API Sylphy.', m);
+      return;
+    }
 
     const json = await response.json();
 
     if (!json.res || !json.res.url) {
-      return conn.reply(m.chat, '✦ No se pudo obtener el enlace del video para descargar.', m);
+      await conn.reply(m.chat, '✦ No se pudo obtener el enlace del video para descargar.', m);
+      return;
     }
 
     // Enviar el video mp4
@@ -101,6 +109,9 @@ const handler = async (m, { conn, text = '', usedPrefix, command }) => {
       title,
       m
     );
+
+    // TERMINAR ejecución para evitar doble envío
+    return;
 
   } catch (error) {
     console.error(error);
