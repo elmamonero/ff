@@ -82,8 +82,6 @@ const handler = async (m, { conn, text = '', usedPrefix, command }) => {
     };
 
     await conn.reply(m.chat, infoMessage, m, context);
-    // Detener ejecución para evitar envío duplicado
-    // continúa solo después del await conn.reply...
 
     const apikey = "sylphy-eab7"; // Tu API key oficial
     const apiUrl = `https://api.sylphy.xyz/download/ytmp4?url=${encodeURIComponent(url)}&apikey=${apikey}`;
@@ -110,7 +108,6 @@ const handler = async (m, { conn, text = '', usedPrefix, command }) => {
       m
     );
 
-    // TERMINAR ejecución para evitar doble envío
     return;
 
   } catch (error) {
@@ -119,8 +116,8 @@ const handler = async (m, { conn, text = '', usedPrefix, command }) => {
   }
 };
 
-handler.command = ['play2'];
+handler.command = ['play2', 'ytmp4'];
 handler.tags = ['descargas'];
-handler.help = ['play2 <nombre|URL>'];
+handler.help = ['play2 <nombre|URL>', 'ytmp4 <nombre|URL>'];
 
 export default handler;
