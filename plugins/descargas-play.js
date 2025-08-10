@@ -1,96 +1,87 @@
+import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
 import yts from 'yt-search';
-import ytdl from 'ytdl-core';
-import fetch from 'node-fetch';
 
-const club = 'Pantheon Bot';
+const handler = async (m, { conn, args }) => {
+  if (!args[0]) return m.reply('Por favor, ingresa un nombre o URL de un video de YouTube');
 
-const handler = async (m, { conn, args, usedPrefix, command }) => {
-  if (!args[0]) {
-    return conn.reply(
-      m.chat,
-      `*Por favor, ingresa un título de YouTube.*\n> *\`Ejemplo:\`* ${usedPrefix + command} Corazón Serrano - Olvídalo Corazón`,
-      m
-    );
+  let url = args[0];
+  let isUrl = /(youtube\.com|youtu\.be)/.test(url);
+
+  if (!isUrl) {
+    // Buscar por texto usando yt-search
+    const searchResults = await yts(args.join(' '));
+    if (!searchResults.videos.length) {
+      return m.reply('No se encontraron resultados para tu búsqueda');
+    }
+    url = searchResults.videos[0].url;
   }
 
-  await m.react('🕒');
-
   try {
-    const query = args.join(" ");
-    const searchResults = await searchVideos(query);
+    await m.react('🕒');
 
-    if (!searchResults.length) {
-      throw new Error('*✖️ No se encontraron resultados.*');
+    // Llamar API Vreden con la URL ya garantizada
+    const { data } = await axios.get(`https://api.vreden.my.id/api/ytmp3?url=${encodeURIComponent(url)}`);
+
+    if (!data.result?.download?.status) {
+      await m.react('✖️');
+      return m.reply('*✖️ Error:* No se pudo obtener el mp3');
     }
 
-    const video = searchResults[0] || {};
+    const title = data.result.metadata.title || 'audio';
+    const audioUrl = data.result.download.url;
+    const fileName = data.result.download.filename || `${title}.mp3`;
+    const thumbnail = data.result.metadata.thumbnail || data.result.metadata.image;
 
-    // Descarga la miniatura
-    let thumbnail;
-    try {
-      const res = await fetch(video.miniatura || 'https://telegra.ph/file/36f2a1bd2aaf902e4d1ff.jpg');
-      thumbnail = await res.buffer();
-    } catch {
-      const res = await fetch('https://telegra.ph/file/36f2a1bd2aaf902e4d1ff.jpg');
-      thumbnail = await res.buffer();
-    }
+    // Descargar archivo MP3 temporalmente
+    const dest = path.join('/tmp', `${Date.now()}_${fileName.replace(/[\\/\s]/g, '_')}`);
+    const response = await axios.get(audioUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        'Referer': 'https://youtube.com',
+      },
+      responseType: 'stream',
+    });
+    const writer = fs.createWriteStream(dest);
+    response.data.pipe(writer);
 
-    // Texto del mensaje
-    let messageText = `\`\`\`◜YouTube - Download MP3◞\`\`\`\n\n`;
-    messageText += `*${video.titulo || query}*\n\n`;
-    messageText += `≡ *⏳ Duración* ${video.duracion || 'No disponible'}\n`;
-    messageText += `≡ *🌴 Autor* ${video.canal || 'Desconocido'}\n`;
-    messageText += `≡ *🌵 Url* ${video.url || 'No disponible'}\n`;
+    await new Promise((resolve, reject) => {
+      writer.on('finish', resolve);
+      writer.on('error', reject);
+    });
 
-    // Descargar el audio en formato MP3 con ytdl-core (bajando solo audio)
-    const stream = ytdl(video.url, { filter: 'audioonly', quality: 'highestaudio' });
-
-    // Enviar primero la imagen con datos
+    // Enviar la info con imagen + audio
     await conn.sendMessage(m.chat, {
-      image: thumbnail,
-      caption: messageText,
-      footer: club,
+      image: { url: thumbnail },
+      caption: `🎵 *${title}*\n\nDescarga MP3 desde YouTube`,
+      footer: 'Pantheon Bot',
       contextInfo: {
-        mentionedJid: [m.sender],
-        forwardingScore: 999,
-        isForwarded: true
-      }
+        externalAdReply: {
+          title,
+          body: 'Descargar MP3 de YouTube',
+          thumbnailUrl: thumbnail,
+          mediaUrl: url,
+        },
+      },
     }, { quoted: m });
 
-    // Luego enviar el audio en formato audio para que quede como nota de voz o audio normal
     await conn.sendMessage(m.chat, {
-      audio: stream,
+      audio: fs.readFileSync(dest),
       mimetype: 'audio/mpeg',
-      ptt: false, // false para audio normal, true para nota de voz
-      fileName: `${video.titulo}.mp3`
+      fileName,
     }, { quoted: m });
 
+    fs.unlinkSync(dest);
     await m.react('✅');
   } catch (e) {
+    console.error('Error al descargar MP3:', e, e.response?.data);
     await m.react('✖️');
-    conn.reply(m.chat, '*`Error al procesar tu solicitud.`*\n' + e.message, m);
+    m.reply('⚠️ La descarga ha fallado, posible error en la API o video muy pesado.');
   }
 };
 
-handler.help = ['play <texto>'];
-handler.tags = ['descargas'];
+handler.help = ['play <nombre|URL>'];
 handler.command = ['play'];
+handler.tags = ['descargas'];
 export default handler;
-
-// Buscar videos en YouTube
-async function searchVideos(query) {
-  try {
-    const res = await yts(query);
-    return res.videos.slice(0, 10).map(video => ({
-      titulo: video.title,
-      url: video.url,
-      miniatura: video.thumbnail,
-      canal: video.author.name,
-      publicado: video.timestamp || 'No disponible',
-      vistas: video.views || 'No disponible',
-      duracion: video.duration?.timestamp || 'No disponible'
-    }));
-  } catch {
-    return [];
-  }
-}
