@@ -28,49 +28,42 @@ export async function before(m, { isAdmin, isBotAdmin, conn }) {
 
     chat.antiLinkUsers[m.sender] += 1
     const advertencias = `${chat.antiLinkUsers[m.sender]}/3`
+    const iconoAdvertencia = 'https://cdn.russellxz.click/bdbe6f1f.jpeg'
 
-    // ----------- Advertencia 1 y 2 ----------- //
-    if (chat.antiLinkUsers[m.sender] < 3) {
-      const advertenciaTexto =
+    // Texto de advertencia (mismo estilo en todas las infracciones)
+    const advertenciaTexto = 
 `➤ \`〔 𝗔𝗗𝗩𝗘𝗥𝗧𝗘𝗡𝗖𝗜𝗔 ⚠️ 〕\`
 
 \`\`\`@${m.sender.split("@")[0]} 𝖯𝖱𝖮𝖧𝖨𝖡𝖨𝖣𝖮 𝖤𝖭𝖫𝖠𝖢𝖤𝖲 𝖣𝖤 𝖮𝖳𝖱𝖮𝖲 𝖦𝖱𝖴𝖯𝖮𝖲, 𝖠𝖭𝖳𝖨𝖫𝖨𝖭𝖪 𝖠𝖢𝖳𝖨𝖵𝖠𝖣𝖮 𝖵𝖤 𝖠 𝖧𝖠𝖢𝖤𝖱 𝖲𝖯𝖠𝖬 𝖠 𝖮𝖳𝖱𝖮 𝖫𝖠𝖣𝖮\`\`\`
 
 \`\`\`≫ 𝖭𝖮 𝖫𝖨𝖭𝖪𝖲 𝖣𝖤 𝖮𝖳𝖱𝖮𝖲 𝖦𝖱𝖴𝖯𝖮𝖲
-≫ 𝖠𝖣𝖵𝖤𝖱𝖳𝖤𝖭𝖢𝖨𝖠𝖲 ${advertencias}\`\`\``
+≫ 𝖠𝖣𝖵𝖤𝖱𝖳𝖤𝖭𝖢𝖨𝖠𝖲 ${advertencias}\`\`\`${advertencias === '3/3' ? '\n\n*⛔ Se procederá a tu expulsión*' : ''}`
 
-      const iconoAdvertencia = 'https://cdn.russellxz.click/bdbe6f1f.jpeg'
-
-      await conn.sendMessage(m.chat, {
-        text: advertenciaTexto,
-        contextInfo: {
-          mentionedJid: [m.sender],
-          externalAdReply: {
-            title: '〔 ⚠️ ANTILINK ⚠️ 〕',
-            body: '',
-            thumbnail: await (await fetch(iconoAdvertencia)).buffer(),
-            sourceUrl: '',
-            mediaType: 1,
-            renderLargerThumbnail: true // 📌 icono grande ARRIBA a la DERECHA
-          }
+    // Envío con icono en el formato que ya usabas
+    await conn.sendMessage(m.chat, {
+      text: advertenciaTexto,
+      contextInfo: {
+        mentionedJid: [m.sender],
+        externalAdReply: {
+          title: '⚠ ANTILINK ACTIVO ⚠',
+          body: 'Sistema de sanciones 3/3',
+          thumbnail: await (await fetch(iconoAdvertencia)).buffer(),
+          mediaType: 1,
+          renderLargerThumbnail: false
         }
-      }, { quoted: m })
+      }
+    }, { quoted: m })
 
-      // Elimina el mensaje con enlace
-      await conn.sendMessage(m.chat, { delete: { remoteJid: m.chat, fromMe: false, id: bang, participant: delet } })
-      return true
-    }
+    // Elimina el mensaje con link
+    await conn.sendMessage(m.chat, { delete: { remoteJid: m.chat, fromMe: false, id: bang, participant: delet }})
 
-    // ----------- Expulsión en 3/3 ----------- //
+    // Si llega a 3 → expulsar
     if (chat.antiLinkUsers[m.sender] >= 3) {
-      await conn.reply(m.chat, `*☕ ${await this.getName(m.sender)} ¡has alcanzado la tercera infracción con enlaces y serás expulsado!*`, m)
-
-      if (!isBotAdmin)
-        return conn.reply(m.chat, `*☕ No soy admin, no puedo expulsar*`, m)
-
-      await conn.sendMessage(m.chat, { delete: { remoteJid: m.chat, fromMe: false, id: bang, participant: delet } })
+      if (!isBotAdmin) {
+        return conn.reply(m.chat, `*☕ No soy admin, no puedo eliminar intrusos*`, m)
+      }
       await conn.groupParticipantsUpdate(m.chat, [m.sender], 'remove')
-      delete chat.antiLinkUsers[m.sender]
+      delete chat.antiLinkUsers[m.sender] // Reinicia contador
     }
   }
 
