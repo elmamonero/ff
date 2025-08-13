@@ -13,8 +13,6 @@ export async function before(m, { isAdmin, isBotAdmin, conn }) {
   const grupo = `https://chat.whatsapp.com`
 
   if (!chat.antiLink) return true
-
-  // Si es admin que manda link → no responder
   if (isAdmin && m.text.includes(grupo)) return true
 
   if (chat.antiLink && isGroupLink && !isAdmin) {
@@ -45,30 +43,21 @@ export async function before(m, { isAdmin, isBotAdmin, conn }) {
         contextInfo: {
           mentionedJid: [m.sender],
           externalAdReply: {
-            title: '',
+            title: '', // sin título para no cambiar el formato
             body: '',
             thumbnail: await (await fetch(iconoAdvertencia)).buffer(),
             mediaType: 1,
-            renderLargerThumbnail: true, // más grande
-            showAdAttribution: false,
-            thumbnailUrl: iconoAdvertencia,
-            sourceUrl: '', 
-            previewType: "NONE"
+            renderLargerThumbnail: false // 📌 Esto hace que se vea como ICONO, no imagen
           }
         }
       }, { quoted: m })
 
-      // El mensaje de externalAdReply siempre coloca la imagen a la DERECHA
-      // cuando no pones título/cuerpo y usas renderLargerThumbnail = true
-
-      // Borrar mensaje con enlace
       await conn.sendMessage(m.chat, { delete: { remoteJid: m.chat, fromMe: false, id: bang, participant: delet }})
       return true
     }
 
-    // Si llega a 3/3 → expulsar
     if (chat.antiLinkUsers[m.sender] >= 3) {
-      await conn.reply(m.chat, `*☕ ${await this.getName(m.sender)} ¡has alcanzado la tercera infracción con enlaces prohibidos y serás expulsado!*`, m)
+      await conn.reply(m.chat, `*☕ ${await this.getName(m.sender)} ¡has llegado a la tercera infracción con enlaces prohibidos y serás expulsado!*`, m)
       if (!isBotAdmin)
         return conn.reply(m.chat, `*☕ No soy admin, no puedo eliminar intrusos*`, m)
 
@@ -77,6 +66,5 @@ export async function before(m, { isAdmin, isBotAdmin, conn }) {
       delete chat.antiLinkUsers[m.sender]
     }
   }
-
   return true
 }
