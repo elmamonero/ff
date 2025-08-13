@@ -4,7 +4,7 @@ export async function before(m, { isAdmin, isBotAdmin, conn }) {
   if (m.isBaileys && m.fromMe) return !0
   if (!m.isGroup) return !1
 
-  if (m.sender === conn.user.jid) return !0
+  if (m.sender === conn.user.jid) return !0 // Ignorar si el mensaje es del bot
 
   let chat = global.db.data.chats[m.chat]
   let delet = m.key.participant
@@ -13,12 +13,11 @@ export async function before(m, { isAdmin, isBotAdmin, conn }) {
   const isGroupLink = linkRegex.exec(m.text)
   const grupo = `https://chat.whatsapp.com`
 
-  // Usaremos un campo en la DB para contar infracciones por usuario en cada grupo
+  // Salir si no está activado el antilink
   if (!chat.antiLink) return !0
 
-  if (isAdmin && m.text.includes(grupo)) {
-    return conn.reply(m.chat, `*☕ Hey!! el \`antilink\` está activo pero eres admin, ¡salvado!*`, m)
-  }
+  // Si es admin y manda link, NO responder nada
+  if (isAdmin && m.text.includes(grupo)) return !0
 
   if (chat.antiLink && isGroupLink && !isAdmin) {
     if (isBotAdmin) {
@@ -26,33 +25,34 @@ export async function before(m, { isAdmin, isBotAdmin, conn }) {
       if (m.text.includes(linkThisGroup)) return !0
     }
 
-    // Inicializar el contador si no existe
     if (!chat.antiLinkUsers) chat.antiLinkUsers = {}
-    if (!(m.sender in chat.antiLinkUsers)) {
-      chat.antiLinkUsers[m.sender] = 0
-    }
+    if (!(m.sender in chat.antiLinkUsers)) chat.antiLinkUsers[m.sender] = 0
 
-    chat.antiLinkUsers[m.sender] += 1 // Incrementar contador
+    chat.antiLinkUsers[m.sender] += 1
 
+    // Mensaje visual de advertencia
     if (chat.antiLinkUsers[m.sender] < 3) {
-      // Primero y segundo aviso / advertencia
-      await conn.reply(m.chat, `*☕ ¡Enlace detectado!*\n\n*${await this.getName(m.sender)} mandaste un enlace prohibido. Esta es la advertencia ${chat.antiLinkUsers[m.sender]}/3. En la tercera infracción serás expulsado.*`, m)
-      
-      // Opcional: eliminar mensaje con enlace para mantener grupo limpio
+      const advertencias = `${chat.antiLinkUsers[m.sender]}/3`
+      const msg = `➤ \`〔 𝗔𝗗𝗩𝗘𝗥𝗧𝗘𝗡𝗖𝗜𝗔 ⚠️ 〕\`
+@${m.sender.split("@")[0]} 𝖯𝖱𝖮𝖧𝖨𝖡𝖨𝖣𝖮 𝖤𝖭𝖫𝖠𝖢𝖤𝖲 𝖣𝖤 𝖮𝖳𝖱𝖮𝖲 𝖦𝖱𝖴𝖯𝖮𝖲, 𝖠𝖭𝖳𝖨𝖫𝖨𝖭𝖪 𝖠𝖢𝖳𝖨𝖵𝖠𝖣𝖮 𝖵𝖤 𝖠 𝖧𝖠𝖢𝖤𝖱 𝖲𝖯𝖠𝖬 𝖠 𝖮𝖳𝖱𝖮 𝖫𝖠𝖣𝖮\`\`\`
+
+\`\`\`≫ 𝖭𝖮 𝖫𝖨𝖭𝖪𝖲 𝖣𝖤 𝖮𝖳𝖱𝖮𝖲 𝖦𝖱𝖴𝖯𝖮𝖲
+≫ 𝖠𝖣𝖵𝖤𝖱𝖳𝖤𝖭𝖢𝖨𝖠𝖲 ${advertencias}\`\`\``
+
+      await conn.reply(m.chat, msg, m, { mentions: [m.sender] })
+      // Elimina el mensaje con enlace para mantener limpio
       await conn.sendMessage(m.chat, { delete: { remoteJid: m.chat, fromMe: false, id: bang, participant: delet }})
       return !0
     }
 
     if (chat.antiLinkUsers[m.sender] >= 3) {
-      // Tercera infracción: expulsar
+      // Expulsa tras 3 advertencias
       await conn.reply(m.chat, `*☕ ${await this.getName(m.sender)} ¡has alcanzado la tercera infracción con enlaces y serás expulsado!*`, m)
       if (!isBotAdmin) 
         return conn.reply(m.chat, `*☕ No soy admin, no puedo eliminar intrusos*`, m)
 
       await conn.sendMessage(m.chat, { delete: { remoteJid: m.chat, fromMe: false, id: bang, participant: delet }})
       await conn.groupParticipantsUpdate(m.chat, [m.sender], 'remove')
-
-      // Reiniciar contador o eliminarlo
       delete chat.antiLinkUsers[m.sender]
     }
   }
