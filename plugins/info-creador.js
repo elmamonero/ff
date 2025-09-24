@@ -24,7 +24,7 @@ let handler = async (m, { conn, usedPrefix, text, args, command }) => {
                 showAdAttribution: true,
                 title: '¡Hola! ʏᴏ sᴏʏ ᴇʟ ᴄʀᴇᴀᴅᴏʀ ᴅᴇ Pᴀɴᴛʜᴇᴏɴ Bᴏᴛ!',
                 body: dev,
-                thumbnailUrl: 'https://files.catbox.moe/kmfqee.jpg',
+                thumbnailUrl: 'https://cdn.russellxz.click/c6a542fe.jpeg',
                 sourceUrl: 'https://wa.me/573203680195?text=Vengo+Del+Comando+.owner',
                 mediaType: 1,
                 renderLargerThumbnail: true
