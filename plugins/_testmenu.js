@@ -36,7 +36,7 @@ ${readMore}
 ↷✦; *\`MENÚS\`* ❞ 🌷︵᷼ 
 ⠞🌷੭‎ ${usedPrefix}menunsfw
 ⠞🌷੭‎ ${usedPrefix}menuaudios
-⠞🌷੭‎ ${usedPrefix}menuowner
+⠞🌷੭‎ ${usedPrefix}menugowner
 ⠞🌷੭‎ ${usedPrefix}menulogos
 ⠞🌷੭‎ ${usedPrefix}menuff
 
