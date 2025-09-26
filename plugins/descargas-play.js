@@ -3,7 +3,6 @@ import fs from 'fs';
 import path from 'path';
 import yts from 'yt-search';
 
-// La API + API KEY juntas en una línea
 const api = `https://api.neoxr.eu/api/youtube?apikey=F0svKu`;
 
 const handler = async (m, { conn, args }) => {
@@ -21,9 +20,7 @@ const handler = async (m, { conn, args }) => {
   try {
     await m.react('🕒');
 
-    // Usamos template string para unir url con API
     const queryUrl = `${api}&url=${encodeURIComponent(url)}&type=audio&quality=128kbps`;
-
     const { data } = await axios.get(queryUrl, { timeout: 30000 });
 
     if (!data.status || !data.data || !data.data.url) {
@@ -33,8 +30,7 @@ const handler = async (m, { conn, args }) => {
 
     const { title, thumbnail, channel, duration, data: downloadData } = data;
     const { url: audioUrl, filename } = downloadData || data;
-    const fileName = filename || `${title}.mp3`.replace(/[\\/:*?"<>|]/g, '_');
-
+    const fileName = `${title || 'audio'}.mp3`.replace(/[\\/:*?"<>|]/g, '_');
     const dest = path.join('/tmp', `${Date.now()}_${fileName.replace(/\s/g, '_')}`);
 
     const response = await axios.get(audioUrl, {
@@ -50,12 +46,6 @@ const handler = async (m, { conn, args }) => {
       writer.on('error', reject);
     });
 
-    const toMMSS = (ms) => {
-      if (!ms) return '00:00';
-      const [min, sec] = ms.split(':');
-      return `${min.padStart(2, '0')}:${sec.padStart(2, '0')}`;
-    };
-
     const durationFormatted = duration || '00:00';
 
     if (thumbnail) {
@@ -67,9 +57,9 @@ const handler = async (m, { conn, args }) => {
     }
 
     await conn.sendMessage(m.chat, {
-      audio: fs.readFileSync(dest),
+      audio: { url: dest },
       mimetype: 'audio/mpeg',
-      fileName,
+      fileName: fileName,
       ptt: false,
     }, { quoted: m });
 
