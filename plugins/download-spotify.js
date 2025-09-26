@@ -3,19 +3,27 @@ import axios from 'axios';
 const SEARCH_API = 'https://delirius-apiofc.vercel.app/search/spotify?q=';
 const DL_API = 'https://delirius-apiofc.vercel.app/download/spotifydl?url=';
 
-let handler = async (m, { conn, text, usedPrefix, command }) => {
+let handler = async (m, { conn, text, usedPrefix, command, isBot }) => {
+  // Ignorar el mensaje si es del propio bot para evitar bucles
+  if (m.fromMe) return;
+
   if (!text) {
-    throw (
-      `${usedPrefix + command} <texto o url>\n` +
-      'Ejemplos:\n' +
+    // Solo enviar ayuda cuando no hay texto y no continuar con descarga
+    await conn.sendMessage(
+      m.chat,
+      `*🎵 Comando Spotify*\n\nUsa:\n` +
+      `• ${usedPrefix + command} <nombre de canción o enlace>\n\n` +
+      `Ejemplos:\n` +
       `• ${usedPrefix + command} TWICE TT\n` +
-      `• ${usedPrefix + command} https://open.spotify.com/track/60jFaQV7Z4boGC4ob5B5c6`
+      `• ${usedPrefix + command} https://open.spotify.com/track/60jFaQV7Z4boGC4ob5B5c6\n`,
+      { quoted: m }
     );
+    return;
   }
 
-  try {
-    await m.react?.('⌛️');
+  await m.react?.('⌛️');
 
+  try {
     const isSpotifyUrl = /https?:\/\/open\.spotify\.com\/(track|album|playlist|episode)\/[A-Za-z0-9]+/i.test(text);
     let trackUrl = text.trim();
     let picked = null;
@@ -54,9 +62,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     const mmss = duration && Number.isFinite(+duration) ? toMMSS(duration) : picked?.duration || '—:—';
     const cover = image || picked?.image || '';
 
-    const wm = '✨ Spotify Downloader';
-
-    const info = `🪼 *Título:*\n${title}\n🪩 *Artista:*\n${author}\n⏳ *Duración:*\n${mmss}\n🔗 *Enlace:*\n${trackUrl}\n\n${wm}`;
+    const info = `🪼 *Título:*\n${title}\n🪩 *Artista:*\n${author}\n⏳ *Duración:*\n${mmss}\n🔗 *Enlace:*\n${trackUrl}\n\n✨ Spotify Downloader`;
 
     await conn.sendMessage(
       m.chat,
@@ -90,11 +96,12 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       { quoted: m }
     );
 
-    m.react?.('✅');
+    await m.react?.('✅');
+
   } catch (e) {
     console.log('❌ Error spotify-combinado:', e?.message || e);
-    m.react?.('❌');
-    m.reply('❌ Ocurrió un error al procesar tu solicitud.');
+    await m.react?.('❌');
+    await m.reply('❌ Ocurrió un error al procesar tu solicitud.');
   }
 };
 
