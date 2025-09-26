@@ -22,6 +22,13 @@ const handler = async (m, { conn, args }) => {
     await m.react('🕒');
 
     const dURL = `${DL_API}${encodeURIComponent(url)}`;
+    // Verificar acceso al enlace antes de descargar
+    const headCheck = await axios.head(dURL, { timeout: 10000 });
+    if (headCheck.status >= 400) {
+      throw new Error(`No se puede acceder al enlace de descarga. Status: ${headCheck.status}`);
+    }
+
+    // Solicitar descarga mp3 y metadata
     const { data } = await axios.get(dURL, { timeout: 30000 });
 
     if (!data.status || !data.data || !data.data.download || !data.data.download.url) {
