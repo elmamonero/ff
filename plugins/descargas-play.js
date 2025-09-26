@@ -38,26 +38,41 @@ const handler = async (m, { conn, args }) => {
     const fileName = filename || `${title || 'audio'}.mp3`;
     const dest = path.join('/tmp', `${Date.now()}_${fileName.replace(/[\\/\s]/g, '_')}`);
 
-    const response = await axios.get(audioUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0',
-        'Referer': 'https://youtube.com',
-      },
-      responseType: 'stream',
-    });
+    // Intentar descargar el archivo MP3
+    let downloaded = false;
+    try {
+      const response = await axios.get(audioUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+          'Accept': '*/*',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Referer': 'https://youtube.com',
+          'Connection': 'keep-alive',
+        },
+        responseType: 'stream',
+      });
 
-    const writer = fs.createWriteStream(dest);
-    response.data.pipe(writer);
+      const writer = fs.createWriteStream(dest);
+      response.data.pipe(writer);
 
-    await new Promise((resolve, reject) => {
-      writer.on('finish', resolve);
-      writer.on('error', reject);
-    });
+      await new Promise((resolve, reject) => {
+        writer.on('finish', resolve);
+        writer.on('error', reject);
+      });
+
+      downloaded = true;
+    } catch (err) {
+      console.warn('⚠️ No se pudo descargar automáticamente el MP3. Enviando enlace directo.');
+    }
 
     if (thumbnail) {
       await conn.sendMessage(m.chat, {
         image: { url: thumbnail },
-        caption: `🎵 *${title}*\n\n📎 URL: ${url}\n\nDescarga MP3 desde YouTube`,
+        caption: `🎵 *${title}*\n\n📎 URL: ${url}\n\n${
+          downloaded
+            ? 'MP3 descargado automáticamente.'
+            : `No se pudo descargar automáticamente.\n🔗 Descárgalo manualmente aquí:\n${audioUrl}`
+        }`,
         footer: 'Pantheon Bot',
         contextInfo: {
           externalAdReply: {
@@ -70,13 +85,16 @@ const handler = async (m, { conn, args }) => {
       }, { quoted: m });
     }
 
-    await conn.sendMessage(m.chat, {
-      audio: fs.readFileSync(dest),
-      mimetype: 'audio/mpeg',
-      fileName,
-    }, { quoted: m });
+    if (downloaded) {
+      await conn.sendMessage(m.chat, {
+        audio: fs.readFileSync(dest),
+        mimetype: 'audio/mpeg',
+        fileName,
+      }, { quoted: m });
 
-    fs.unlinkSync(dest);
+      fs.unlinkSync(dest);
+    }
+
     await m.react('✅');
   } catch (error) {
     console.error('Error al descargar MP3:', error);
