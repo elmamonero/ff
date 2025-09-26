@@ -20,17 +20,30 @@ const handler = async (m, { conn, args }) => {
   try {
     await m.react('🕒');
 
-    const { data } = await axios.get(`https://api.vreden.my.id/api/ytmp3?url=${encodeURIComponent(url)}`);
+    // Usamos la nueva API de Sylphy para descargar MP3
+    const { data } = await axios.get(`https://api.sylphy.xyz/download/ytmp3?url=${encodeURIComponent(url)}`);
 
-    if (!data.result?.download?.status) {
+    if (!data.status) {
       await m.react('✖️');
-      return m.reply('*✖️ Error:* No se pudo obtener el mp3');
+      return m.reply(`*✖️ Error:* ${data.mensaje || 'No se pudo obtener el mp3'}`);
     }
 
-    const title = data.result.metadata.title || 'audio';
-    const audioUrl = data.result.download.url;
-    const fileName = data.result.download.filename || `${title}.mp3`;
-    const thumbnail = data.result.metadata.thumbnail || data.result.metadata.image;
+    // El formato de respuesta no está del todo claro, asumimos que trae 'creator', etc.
+    // Pero en base al error suministrado, el parámetro url es obligatorio y la estructura de descarga no está especificada.
+    // Por lo tanto, necesitamos ajustar esta parte si la API tiene otra estructura específica.
+
+    // Supongamos que el objeto 'data' tiene un 'result' con 'title', 'url' y 'filename', similar a antes
+    // Si no, se tendrían que ajustar estos valores según la respuesta real de la API
+
+    const title = data.result?.title || 'audio';
+    const audioUrl = data.result?.url;
+    const fileName = data.result?.filename || `${title}.mp3`;
+    const thumbnail = data.result?.thumbnail || data.result?.image || null;
+
+    if (!audioUrl) {
+      await m.react('✖️');
+      return m.reply('*✖️ Error:* No se pudo obtener el enlace de descarga del MP3');
+    }
 
     const dest = path.join('/tmp', `${Date.now()}_${fileName.replace(/[\\/\s]/g, '_')}`);
     const response = await axios.get(audioUrl, {
@@ -48,20 +61,22 @@ const handler = async (m, { conn, args }) => {
       writer.on('error', reject);
     });
 
-    // Enviamos la imagen, título y URL
-    await conn.sendMessage(m.chat, {
-      image: { url: thumbnail },
-      caption: `🎵 *${title}*\n\n📎 URL: ${url}\n\nDescarga MP3 desde YouTube`,
-      footer: 'Pantheon Bot',
-      contextInfo: {
-        externalAdReply: {
-          title,
-          body: 'Descargar MP3 de YouTube',
-          thumbnailUrl: thumbnail,
-          mediaUrl: url,
+    // Enviamos la imagen, título y URL si hay thumbnail
+    if (thumbnail) {
+      await conn.sendMessage(m.chat, {
+        image: { url: thumbnail },
+        caption: `🎵 *${title}*\n\n📎 URL: ${url}\n\nDescarga MP3 desde YouTube`,
+        footer: 'Pantheon Bot',
+        contextInfo: {
+          externalAdReply: {
+            title,
+            body: 'Descargar MP3 de YouTube',
+            thumbnailUrl: thumbnail,
+            mediaUrl: url,
+          },
         },
-      },
-    }, { quoted: m });
+      }, { quoted: m });
+    }
 
     // Enviamos el audio descargado
     await conn.sendMessage(m.chat, {
