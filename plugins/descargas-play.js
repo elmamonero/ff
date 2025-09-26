@@ -12,10 +12,9 @@ const handler = async (m, { conn, args }) => {
   const isUrl = /(youtube\.com|youtu\.be)/.test(url);
 
   if (!isUrl) {
+    // Buscar video en YouTube si no es URL
     const searchResults = await yts(args.join(' '));
-    if (!searchResults.videos.length) {
-      return m.reply('No se encontraron resultados para tu búsqueda');
-    }
+    if (!searchResults.videos.length) return m.reply('No se encontraron resultados para tu búsqueda');
     url = searchResults.videos[0].url;
   }
 
@@ -25,20 +24,18 @@ const handler = async (m, { conn, args }) => {
     const dURL = `${DL_API}${encodeURIComponent(url)}`;
     const { data } = await axios.get(dURL, { timeout: 30000 });
 
-    if (!data.status) {
+    if (!data.status || !data.data || !data.data.download || !data.data.download.url) {
       await m.react('✖️');
-      return m.reply(`*✖️ Error:* ${data.message || 'No se pudo obtener el mp3'}`);
+      return m.reply(`*✖️ Error:* No se pudo obtener el mp3`);
     }
 
-    const { title, thumbnail, url: audioUrl } = data.data || data; // api response structure varies sometimes
-    const fileName = `${title || 'audio'}.mp3`;
+    const { title, author, image, duration, download } = data.data;
+    const { url: audioUrl, filename } = download;
+    const fileName = filename || `${title}.mp3`;
 
-    if (!audioUrl) {
-      await m.react('✖️');
-      return m.reply('*✖️ Error:* No se pudo obtener el enlace de descarga del MP3');
-    }
-
+    // Descargar archivo al servidor temporal
     const dest = path.join('/tmp', `${Date.now()}_${fileName.replace(/[\\/\s]/g, '_')}`);
+
     const response = await axios.get(audioUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
@@ -54,16 +51,24 @@ const handler = async (m, { conn, args }) => {
       writer.on('error', reject);
     });
 
-    if (thumbnail) {
+    const toMMSS = ms => {
+      const totalSec = Math.floor((+ms || 0) / 1000);
+      const mm = String(Math.floor(totalSec / 60)).padStart(2, '0');
+      const ss = String(totalSec % 60).padStart(2, '0');
+      return `${mm}:${ss}`;
+    };
+    const mmss = toMMSS(duration * 1000);
+
+    if (image) {
       await conn.sendMessage(m.chat, {
-        image: { url: thumbnail },
-        caption: `🎵 *${title}*\n\n📎 URL: ${url}\n\nDescarga MP3 desde YouTube`,
+        image: { url: image },
+        caption: `🎵 *${title}*\n👤 *${author}*\n⏳ *Duración:* ${mmss}\n\n📎 URL: ${url}\n\nDescarga MP3 desde YouTube`,
         footer: 'Pantheon Bot',
         contextInfo: {
           externalAdReply: {
             title,
             body: 'Descargar MP3 de YouTube',
-            thumbnailUrl: thumbnail,
+            thumbnailUrl: image,
             mediaUrl: url,
           },
         },
@@ -79,9 +84,9 @@ const handler = async (m, { conn, args }) => {
     fs.unlinkSync(dest);
     await m.react('✅');
   } catch (error) {
-    console.error('Error al descargar MP3:', error, error.response?.data);
+    console.error('Error al descargar MP3:', error);
     await m.react('✖️');
-    m.reply('⚠️ La descarga ha fallado, posible error en la API o video muy pesado.');
+    await m.reply('⚠️ La descarga ha fallado, posible error en la API o video muy pesado.');
   }
 };
 
