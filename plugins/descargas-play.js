@@ -7,7 +7,7 @@ const handler = async (m, { conn, args }) => {
   if (!args[0]) return m.reply('Por favor, ingresa un nombre o URL de un video de YouTube');
 
   let url = args[0];
-  let isUrl = /(youtube\.com|youtu\.be)/.test(url);
+  const isUrl = /(youtube\.com|youtu\.be)/.test(url);
 
   if (!isUrl) {
     const searchResults = await yts(args.join(' '));
@@ -20,31 +20,26 @@ const handler = async (m, { conn, args }) => {
   try {
     await m.react('🕒');
 
-    // Usamos la nueva API de Sylphy para descargar MP3
-    const { data } = await axios.get(`https://api.sylphy.xyz/download/ytmp3?url=${encodeURIComponent(url)}`);
+    // Petición POST a la API de Sylphy enviando URL en el body
+    const { data } = await axios.post('https://api.sylphy.xyz/download/ytmp3', { url });
 
     if (!data.status) {
       await m.react('✖️');
       return m.reply(`*✖️ Error:* ${data.mensaje || 'No se pudo obtener el mp3'}`);
     }
 
-    // El formato de respuesta no está del todo claro, asumimos que trae 'creator', etc.
-    // Pero en base al error suministrado, el parámetro url es obligatorio y la estructura de descarga no está especificada.
-    // Por lo tanto, necesitamos ajustar esta parte si la API tiene otra estructura específica.
-
-    // Supongamos que el objeto 'data' tiene un 'result' con 'title', 'url' y 'filename', similar a antes
-    // Si no, se tendrían que ajustar estos valores según la respuesta real de la API
-
+    // Ajusta estos campos según la respuesta real de la API
+    const audioUrl = data.result?.url || data.downloadUrl || data.url;
     const title = data.result?.title || 'audio';
-    const audioUrl = data.result?.url;
-    const fileName = data.result?.filename || `${title}.mp3`;
-    const thumbnail = data.result?.thumbnail || data.result?.image || null;
+    const fileName = `${title}.mp3`;
+    const thumbnail = data.result?.thumbnail || null;
 
     if (!audioUrl) {
       await m.react('✖️');
       return m.reply('*✖️ Error:* No se pudo obtener el enlace de descarga del MP3');
     }
 
+    // Descargar audio a archivo temporal
     const dest = path.join('/tmp', `${Date.now()}_${fileName.replace(/[\\/\s]/g, '_')}`);
     const response = await axios.get(audioUrl, {
       headers: {
@@ -61,7 +56,7 @@ const handler = async (m, { conn, args }) => {
       writer.on('error', reject);
     });
 
-    // Enviamos la imagen, título y URL si hay thumbnail
+    // Enviar imagen y metadatos si hay thumbnail
     if (thumbnail) {
       await conn.sendMessage(m.chat, {
         image: { url: thumbnail },
@@ -78,7 +73,7 @@ const handler = async (m, { conn, args }) => {
       }, { quoted: m });
     }
 
-    // Enviamos el audio descargado
+    // Enviar audio descargado
     await conn.sendMessage(m.chat, {
       audio: fs.readFileSync(dest),
       mimetype: 'audio/mpeg',
