@@ -2,36 +2,49 @@ import fetch from 'node-fetch';
 
 const handler = async (m, { conn, text, usedPrefix, command }) => {
   if (!text) {
-    await m.reply(`*📀 Por favor, ingresa el enlace o nombre de una canción de Spotify.*\n> *\`Ejemplo:\`* ${usedPrefix + command} Ponte bonita - Cris mj`);
+    await m.reply(`*🎵 Por favor, ingresa un enlace de Spotify válido.*\n> *Ejemplo:* ${usedPrefix + command} https://open.spotify.com/track/3k68kVFWTTBP0Jb4LOzCax`);
     return;
   }
 
   await m.react('⌛');
 
   try {
-    // Llamada a API pública sin apikey
-    const response = await fetch(`https://api.nekorinn.my.id/downloader/spotifyplay?q=${encodeURIComponent(text)}`);
+    // Llamada a la API de Vreden con el parámetro url
+    const apiURL = `https://api.vreden.my.id/api/v1/download/spotify?url=${encodeURIComponent(text)}`;
+    const response = await fetch(apiURL);
     const data = await response.json();
 
-    if (!data.result || !data.result.downloadUrl) {
-      throw new Error('No se encontró la canción o el enlace es inválido.');
+    if (!data.status || !data.result || !data.result.downloadUrl) {
+      throw new Error(data.message || 'No se pudo obtener el audio desde Spotify');
     }
 
-    // Enviar audio al chat desde la url obtenida
+    const { title, thumbnail, downloadUrl } = data.result;
+
+    // Enviar imagen y metadatos (miniatura y título)
+    if (thumbnail) {
+      await conn.sendMessage(m.chat, {
+        image: { url: thumbnail },
+        caption: `🎵 *${title}*\n\n🔗 Enlace Spotify: ${text}`,
+        footer: 'Vreden API - Spotify Downloader',
+      }, { quoted: m });
+    }
+
+    // Enviar audio descargado desde la URL devuelta
     await conn.sendMessage(m.chat, {
-      audio: { url: data.result.downloadUrl },
-      mimetype: 'audio/mpeg'
+      audio: { url: downloadUrl },
+      mimetype: 'audio/mpeg',
+      fileName: `${title}.mp3`
     }, { quoted: m });
 
     await m.react('✅');
-  } catch (e) {
-    console.error('Error al enviar audio:', e);
-    await m.reply(`❌ Error al obtener el audio:\n${e.message}`);
+  } catch (error) {
+    console.error('Error al descargar audio de Spotify:', error);
     await m.react('❌');
+    await m.reply(`❌ Error al obtener el audio:\n${error.message}`);
   }
 };
 
-handler.help = ['spotify *<texto>*'];
+handler.help = ['spotify <url>'];
 handler.tags = ['descargas'];
 handler.command = ['spotify', 'spotifydl', 'spdl'];
 
