@@ -49,7 +49,7 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
 handler.help = ['ia']
 handler.tags = ['tools']
 handler.register = true
-handler.command = ['ia', 'ai', 'shadow']
+handler.command = ['ia', 'ai', 'Pantheon']
 export default handler
 
 async function fetchImageBuffer(content, imageBuffer) {

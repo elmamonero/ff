@@ -96,7 +96,7 @@ var handler = async (m, { text, conn, args, command, usedPrefix }) => {
         const listMessage = {
             interactiveMessage: {
                 body: { text: 'Selecciona una opción para descargar:' },
-                footer: { text: 'Shadow Bot' },
+                footer: { text: 'Pantheon Bot' },
                 nativeFlowMessage: {
                     buttons: [
                         {

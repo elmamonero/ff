@@ -40,11 +40,11 @@ const rtotalreg = Object.values(global.db.data.users).filter(user => user.regist
 *⎔ _Experiencia:_* _${exp}_
 *⎔ _Rango:_* _${role}_
 *⎔ _Diamantes:_* _${limit}_
-*⎔ _ShadowCoins:_* _${money}_
+*⎔ _PantheonCoins:_* _${money}_
 *⎔ _Tokens:_* _${joincount}_
 *⎔ _Premium:_* ${user.premiumTime > 0 ? '✅' : (isPrems ? '✅' : '❌') || ''}
 ㅤ· · ────── ·•· ────── · · 
-SHADOW ULTRA BY BK-CRISS7 🥀
+Pantheon ULTRA BY BK-CRISS7 🥀
 - Para el menú completo usa *.allmenu*
 ㅤ· · ────── ·•· ────── · · 
 *╭┄⊰* TEST CTMR v:

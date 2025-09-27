@@ -25,7 +25,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     contextInfo: {
       externalAdReply: {
         title: `Xnxx Videos`,
-        body: `Shadow Ultra`,
+        body: `Pantheon Ultra`,
         thumbnailUrl: "https://pomf2.lain.la/f/kro5qrjk.jpg",
         sourceUrl: "https://xxnx.com",
         mediaType: 1,

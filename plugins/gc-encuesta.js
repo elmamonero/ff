@@ -1,6 +1,6 @@
 /* MEJORADO POR CRISS  
 github.com/CrxstianEscobar  
-Shadow Code */  
+Pantheon Code */  
 
 let handler = async (m, { conn, text, args, usedPrefix, command }) => {  
     // Verificar que se haya ingresado texto  

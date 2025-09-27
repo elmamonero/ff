@@ -11,7 +11,7 @@ return conn.reply(m.chat, '*[ ℹ️ ] Utiliza este comando directamente en el n
 }
 
 let chatId = m.isGroup ? [m.chat, m.sender] : [m.sender]
-let sessionPath = './ShadowSession/'
+let sessionPath = './PantheonSession/'
 
 try {
 
@@ -33,7 +33,7 @@ conn.reply(m.chat, `*👋🏻 ¡Hola! ¿logras verme?*`, m)
 }
 } catch (err) {
 console.error('*[ ❌ ] Error al leer la carpeta o los archivos de sesión:*', err)
-await conn.reply(m.chat, '[ ℹ️ ] *Hola Soy \`ShadowBot\` Sigue el Canal*', m, rcanal)
+await conn.reply(m.chat, '[ ℹ️ ] *Hola Soy \`PantheonBot\` Sigue el Canal*', m, rcanal)
 }
 
 }
