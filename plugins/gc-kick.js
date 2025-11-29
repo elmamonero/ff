@@ -1,33 +1,34 @@
-let handler = async (m, { conn, participants, usedPrefix, command, isROwner }) => {
+let handler = async (m, { conn }) => {
   if (!global.db.data.settings[conn.user.jid].restrict) {
-    return m.reply('*[ ⚠️ ] 𝙴𝙻 𝙾𝚆𝙽𝙴𝚁 𝚃𝙸𝙴𝙽𝙴 𝚁𝙴𝚂𝚃𝚁𝙸𝙽𝙶𝙸𝙳𝙾 (𝚎𝚗𝚊𝚋𝚕𝚎 𝚛𝚎𝚜𝚝𝚛𝚒𝚌𝚝 / 𝚍𝚒𝚜𝚊𝚋𝚕𝚎 𝚛𝚎𝚜𝚝𝚛𝚒𝚌𝚝) 𝙴𝙻 𝚄𝚂𝙾 𝙳𝙴 𝙴𝚂𝚃𝙴 𝙲𝙾𝙼𝙰𝙽𝙳𝙾*');
+    return m.reply('*[ ⚠️ ] El owner tiene restringido el uso de este comando.*');
   }
   
   let kickte = `*[ ℹ️ ] Menciona al usuario que deseas eliminar.*`
 
-  if (!m.mentionedJid[0] && !m.quoted) return m.reply(kickte, m.chat, { mentions: conn.parseMention(kickte)})
+  if (!m.mentionedJid[0] && !m.quoted) 
+    return m.reply(kickte, m.chat, { mentions: conn.parseMention(kickte)})
 
   let user = m.mentionedJid[0] ? m.mentionedJid[0] : m.quoted ? m.quoted.sender : null
-  
-  // Si no hay usuario válido
   if (!user) return m.reply(kickte)
 
-  // **PROTECCIÓN DEL BOT - VERIFICACIÓN MÁS ESTRICTA**
-  const botId = conn.user.jid
-  if (user === botId) {
-    return m.reply(`*[ ℹ️ ] No se puede eliminar al bot del grupo.*`)
+  // --- PROTECCIÓN DEL BOT ---
+  const botId = conn.user.jid.split('@')[0]   // normalizamos
+  const targetId = user.split('@')[0]         // normalizamos
+
+  if (botId === targetId) {
+    return m.reply(`*[ ℹ️ ] No se puede eliminar al bot del grupo bajo ninguna circunstancia.*`)
   }
 
-  // Verificamos si el usuario a eliminar es el creador del grupo
   try {
     let groupMetadata = await conn.groupMetadata(m.chat)
     let owner = groupMetadata.owner
 
+    // Protección del creador del grupo
     if (user === owner) {
       return m.reply(`*[ ℹ️ ] No puedes eliminar al creador del grupo.*`)
     }
 
-    // Solo aquí ejecutamos el kick
+    // Ejecutamos el kick
     await conn.groupParticipantsUpdate(m.chat, [user], 'remove')
     m.reply(`*[ ℹ️ ] El participante ${user.split('@')[0]} fue eliminado.*`)
     
