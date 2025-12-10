@@ -18,16 +18,16 @@
     "eslint": "eslint .",
     "eslintfix": "eslint --fix ."
   },
-  "homepage": "https://github.com/meldexzz/bolibotmensual.git",
+  "homepage": "https://github.com/El-brayan502/RoxyBot-MD",
   "author": {
-    "name": "meldexzz"
+    "name": "DevBrayan"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/meldexzz/bolibotmensual.git"
+    "url": "git+https://github.com/El-brayan502/RoxyBot-MD.git"
   },
   "bugs": {
-    "url": "https://github.com/meldexzz/bolibotmensual.git"
+    "url": "https://github.com/El-brayan502/RoxyBot-MD/issues"
   },
   "license": "GPL-3.0-or-later",
   "dependencies": {
@@ -37,7 +37,7 @@
     "@ibaraki-douji/pixivts": "^2.4.1",
     "@octokit/rest": "^21.1.1",
     "@vitalets/google-translate-api": "^8.0.0",
-    "@whiskeysockets/baileys": "^7.0.0-rc.9",   
+    "@whiskeysockets/baileys": "github:JoseXrl15k/XrlBaileyszzz",   
     "@xct007/frieren-scraper": "^0.0.2",
     "acrcloud": "^1.4.0",
     "api-dylux": "^1.7.2",
