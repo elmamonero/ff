@@ -18,20 +18,20 @@
 "eslint": "eslint .",
 "eslintfix": "eslint --fix ."
 },
-"homepage": "https://github.com/El-brayan502/RoxyBot-MD",
+"homepage": "https://github.com/WhiskeySockets/Baileys/",
 "author": {
 "name": "DevBrayan"
 },
 "repository": {
 "type": "git",
-"url": "git+https://github.com/El-brayan502/RoxyBot-MD.git"
+"url": "git@github.com:WhiskeySockets/Baileys.git"
 },
 "bugs": {
 "url": "https://github.com/El-brayan502/RoxyBot-MD/issues"
 },
 "license": "GPL-3.0-or-later",
 "dependencies": {
-"@whiskeysockets/baileys": "npm:@izumi-xyz/meta",
+"@whiskeysockets/baileys": "github:ds6/sgn",
 "@adiwajshing/keyed-db": "^0.2.4",
 "@bochilteam/scraper": "^4.2.4",
 "@bochilteam/scraper-sosmed": "^1.0.5",
